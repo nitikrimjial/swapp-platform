@@ -37,10 +37,15 @@ With the Railway CLI and a token (`RAILWAY_TOKEN`), the same steps can be script
 
 ## Option 2: Render (app) with Aiven (free MySQL)
 
-1. Create a free MySQL service at <https://aiven.io>. Copy the host, port, user, password and database, and keep `sslMode=REQUIRED` in the JDBC URL.
-2. At <https://render.com> create a **Web Service** from this repository (runtime **Docker**).
-3. Add the environment variables listed at the top of this guide, and set the health check path to `/actuator/health`.
-4. Render provides HTTPS at `https://<name>.onrender.com`. Use that as `CORS_ALLOWED_ORIGINS`.
+1. **Database:** at <https://console.aiven.io> create a service → **MySQL** → **Free plan**. When it is running, copy the connection details from *Overview*: host, port, user (`avnadmin`), password and database (`defaultdb`).
+2. **App:** at <https://dashboard.render.com> choose **New → Blueprint** and connect this repository. Render reads `render.yaml`, creates the free Docker web service and **generates `JWT_SECRET` itself**.
+3. When prompted, fill in:
+   ```
+   DB_URL=jdbc:mysql://<host>:<port>/defaultdb?sslMode=REQUIRED&connectionTimeZone=UTC
+   DB_USERNAME=avnadmin
+   DB_PASSWORD=<aiven password>
+   ```
+4. Deploy. Render serves HTTPS at `https://swapp-xxxx.onrender.com`. CORS defaults to that URL (`RENDER_EXTERNAL_URL`), so there is nothing else to set.
 
 Note: free Render instances sleep when idle, so the first request after a pause takes a while.
 

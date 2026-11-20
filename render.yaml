@@ -1,0 +1,22 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Deploys the Docker image as a free web service with HTTPS. MySQL comes from an external provider (e.g. Aiven free tier).
+services:
+  - type: web
+    name: swapp
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: JWT_SECRET
+        generateValue: true          # Render generates a random 256-bit secret
+      - key: DB_POOL_SIZE
+        value: "5"                   # free MySQL tiers allow few connections
+      - key: DB_URL
+        sync: false                  # e.g. jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED&connectionTimeZone=UTC
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
