@@ -1,0 +1,22 @@
+# Integration tests run against a real MySQL database (never an in-memory substitute).
+# Locally: start MySQL on localhost:3306. In CI: a MySQL service container (see .github/workflows/ci.yml).
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:mysql://localhost:3306/swapp_test?createDatabaseIfNotExist=true&connectionTimeZone=UTC}
+    username: ${TEST_DB_USERNAME:root}
+    password: ${TEST_DB_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+
+app:
+  jwt:
+    # Test-only key; production keys come from the JWT_SECRET environment variable.
+    secret: test-only-signing-key-not-used-anywhere-else-0123456789
+  security:
+    bcrypt-strength: 4
+  cors:
+    allowed-origins: http://localhost:8080
+
+logging:
+  level:
+    com.swapp: WARN
