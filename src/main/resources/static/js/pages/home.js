@@ -7,7 +7,8 @@ const { user } = await initPage({ auth: 'optional', active: 'home' });
 render('#search-icon', icon('search'));
 if (user) {
   const hour = new Date().getHours();
-  const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  // Late night (before 5am) reads as evening, not morning.
+  const part = hour >= 5 && hour < 12 ? 'Good morning' : hour >= 12 && hour < 17 ? 'Good afternoon' : 'Good evening';
   render('#greeting', html`${part}, ${user.displayName.split(' ')[0]}`);
 }
 if (param('welcome') && user) {
