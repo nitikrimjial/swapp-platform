@@ -78,6 +78,15 @@ export JWT_SECRET="$(openssl rand -base64 48)"
 
 Flyway creates the schema and seeds the categories on first start. If `JWT_SECRET` is not set in development, an ephemeral key is generated and a warning is logged. In the `prod` profile the application refuses to start without one.
 
+### Demo data
+
+Fill a running instance with realistic members, listings (with photos), offers, exchanges, donation requests and conversations, all created through the public API:
+
+```bash
+cd e2e && npm install && node seed.mjs http://localhost:8080
+# demo logins: priya@swapp.demo, arjun@swapp.demo, ... (password: Passw0rd!)
+```
+
 ### Running the tests
 
 The integration tests use a **real MySQL database** (`swapp_test`, created automatically):
