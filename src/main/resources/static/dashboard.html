@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Swapp</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/dashboard.js"></script>
+</head>
+<body>
+<main class="page" id="main">
+  <div class="container">
+    <div class="page-head">
+      <div><h1 id="title">Dashboard</h1><p>Everything happening with your listings, offers and exchanges.</p></div>
+      <a class="btn btn-primary" href="/item-new.html" id="new-btn">List an item</a>
+    </div>
+    <div class="stat-grid" id="stats"></div>
+    <div class="dash-grid">
+      <div class="stack">
+        <div class="card"><div class="card-head"><h2>Needs your attention</h2><a class="small" href="/offers-incoming.html">All offers</a></div><div class="card-body" id="attention"></div></div>
+        <div class="card"><div class="card-head"><h2>Active exchanges</h2><a class="small" href="/exchanges.html">All exchanges</a></div><div class="card-body" id="exchanges"></div></div>
+        <div class="card"><div class="card-head"><h2>Your recent listings</h2><a class="small" href="/my-listings.html">Manage listings</a></div><div class="card-body"><div class="item-grid" id="listings"></div></div></div>
+      </div>
+      <div class="stack">
+        <div class="card"><div class="card-head"><h2>Quick actions</h2></div><div class="card-body"><div class="quick-actions" id="quick"></div></div></div>
+        <div class="card"><div class="card-head"><h2>Recent activity</h2><a class="small" href="/notifications.html">View all</a></div><div class="card-body" id="activity"></div></div>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

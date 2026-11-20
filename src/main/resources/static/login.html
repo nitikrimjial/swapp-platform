@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Swapp</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/auth.js"></script>
+</head>
+<body data-mode="login">
+<div class="auth-wrap">
+  <aside class="auth-aside">
+    <span class="orb" style="width:320px;height:320px;right:-80px;top:-80px"></span>
+    <span class="orb" style="width:200px;height:200px;left:-60px;bottom:-40px"></span>
+    <h2>Welcome back to your community exchange.</h2>
+    <p>Pick up where you left off: check your offers, reply to messages and finish your swaps.</p>
+    <ul id="aside-points"></ul>
+  </aside>
+  <main class="auth-main" id="main">
+    <div class="auth-card">
+      <h1>Sign in</h1>
+      <p class="lead">Good to see you again.</p>
+      <form id="auth-form" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input" id="email" name="email" type="email" autocomplete="email" required maxlength="255">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-group">
+            <input class="input" id="password" name="password" type="password" autocomplete="current-password" required maxlength="72" style="padding-left:14px;padding-right:48px">
+            <button type="button" class="btn btn-ghost btn-icon btn-sm input-action" id="toggle-password" aria-label="Show password"></button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg btn-block" data-loading-text="Signing in">Sign in</button>
+      </form>
+      <p class="auth-switch">New to Swapp? <a href="/register.html" id="switch-link">Create an account</a></p>
+    </div>
+  </main>
+</div>
+</body>
+</html>

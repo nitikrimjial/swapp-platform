@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Settings · Swapp</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/settings.js"></script>
+</head>
+<body>
+<main class="page" id="main">
+  <div class="container" style="max-width:1040px">
+    <div class="page-head"><div><h1>Settings</h1><p>Manage your profile, security and preferences.</p></div></div>
+    <div class="settings-grid">
+      <nav class="settings-nav" id="settings-nav" aria-label="Settings sections"></nav>
+      <div class="stack">
+        <section class="card" id="profile"><div class="card-head"><h2>Profile</h2></div><div class="card-body">
+          <div class="avatar-editor">
+            <div id="avatar-preview"></div>
+            <div class="row-wrap">
+              <label class="btn btn-secondary btn-sm" for="avatar-input" id="avatar-upload-label">Upload photo</label>
+              <input type="file" id="avatar-input" accept="image/jpeg,image/png,image/gif,image/webp" class="sr-only">
+              <button type="button" class="btn btn-ghost btn-sm" id="avatar-remove">Remove</button>
+              <span class="small muted" style="flex-basis:100%">JPEG, PNG, GIF or WebP, up to 5 MB.</span>
+            </div>
+          </div>
+          <form id="profile-form" novalidate>
+            <div class="form-grid cols-2">
+              <div class="field"><label for="displayName">Display name</label><input class="input" id="displayName" name="displayName" maxlength="80" required></div>
+              <div class="field"><label for="location">Location</label><input class="input" id="location" name="location" maxlength="120" placeholder="Neighbourhood or city"></div>
+            </div>
+            <div class="field"><label for="bio">Bio</label><textarea class="textarea" id="bio" name="bio" maxlength="500" placeholder="A few words about you and what you like to swap"></textarea><span class="char-count" id="bio-count"></span></div>
+            <div class="row" style="justify-content:flex-end"><button class="btn btn-primary" type="submit" data-loading-text="Saving">Save profile</button></div>
+          </form>
+        </div></section>
+
+        <section class="card" id="security"><div class="card-head"><h2>Password</h2></div><div class="card-body">
+          <form id="password-form" novalidate>
+            <div class="field"><label for="currentPassword">Current password</label><input class="input" type="password" id="currentPassword" name="currentPassword" autocomplete="current-password" required maxlength="72"></div>
+            <div class="form-grid cols-2">
+              <div class="field"><label for="newPassword">New password</label><input class="input" type="password" id="newPassword" name="newPassword" autocomplete="new-password" required minlength="8" maxlength="72"><span class="hint">At least 8 characters with a letter and a number.</span></div>
+              <div class="field"><label for="confirmPassword">Confirm new password</label><input class="input" type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" required maxlength="72"></div>
+            </div>
+            <p class="small muted">Changing your password signs you out on all other devices.</p>
+            <div class="row" style="justify-content:flex-end"><button class="btn btn-primary" type="submit" data-loading-text="Updating">Update password</button></div>
+          </form>
+        </div></section>
+
+        <section class="card" id="sessions"><div class="card-head"><h2>Sessions</h2></div><div class="card-body">
+          <p>Signed in on a shared or lost device? Sign out everywhere to end all active sessions, including this one.</p>
+          <button class="btn btn-danger-ghost" id="signout-all">Sign out of all devices</button>
+        </div></section>
+
+        <section class="card" id="appearance"><div class="card-head"><h2>Appearance</h2></div><div class="card-body">
+          <p class="muted">Choose how Swapp looks on this device.</p>
+          <div class="segmented" id="theme-picker" role="radiogroup" aria-label="Theme">
+            <button type="button" data-theme="system">System</button>
+            <button type="button" data-theme="light">Light</button>
+            <button type="button" data-theme="dark">Dark</button>
+          </div>
+        </div></section>
+
+        <section class="card" id="account"><div class="card-head"><h2>Account</h2></div><div class="card-body">
+          <dl class="meta-list" id="account-info"></dl>
+        </div></section>
+      </div>
+    </div>
+  </div>
+</main>
+</body>
+</html>

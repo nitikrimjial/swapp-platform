@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Messages · Swapp</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/messages.js"></script>
+</head>
+<body>
+<main class="page" id="main" style="padding-top:20px;padding-bottom:20px">
+  <div class="container">
+    <div class="chat-shell" id="shell">
+      <section class="convo-list" aria-label="Conversations">
+        <div class="convo-list-head"><h2>Messages</h2></div>
+        <div class="convo-items" id="convos"></div>
+      </section>
+      <section class="chat-pane" id="pane" aria-label="Conversation">
+        <div class="chat-empty" id="pane-empty"></div>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discover · Swapp</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/home.js"></script>
+</head>
+<body>
+<main class="page" id="main">
+  <div class="container">
+    <div id="welcome"></div>
+    <div class="page-head">
+      <div>
+        <h1 id="greeting">Discover</h1>
+        <p id="greeting-sub">Find something new to you, or pass something on.</p>
+      </div>
+      <form action="/browse.html" class="input-group" style="min-width:min(100%,360px)" role="search">
+        <span id="search-icon"></span>
+        <input class="input" type="search" name="q" placeholder="What are you looking for?" aria-label="Search">
+      </form>
+    </div>
+    <div class="chips" id="categories" aria-label="Categories"></div>
+    <div id="sections"></div>
+  </div>
+</main>
+</body>
+</html>

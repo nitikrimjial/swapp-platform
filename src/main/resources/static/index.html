@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Swapp · Exchange, donate and share with your community</title>
+  <meta name="description" content="Swapp is a community platform to exchange items, donate, give things away and request what you need, without money.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/landing.js"></script>
+</head>
+<body>
+<main id="main">
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow" id="hero-eyebrow">Community exchange, no money needed</span>
+        <h1>Swap what you have for <span class="hl">what you need.</span></h1>
+        <p class="lede">Swapp connects neighbours to trade unused items, donate what they no longer need, give things away and ask for help, so good stuff stays in use instead of gathering dust.</p>
+        <div class="hero-cta" id="hero-cta">
+          <a class="btn btn-primary btn-lg" href="/register.html">Join Swapp, it's free</a>
+          <a class="btn btn-secondary btn-lg" href="/browse.html">Browse items</a>
+        </div>
+        <div class="hero-stats" id="hero-stats" aria-live="polite"></div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="float-card fc-1"><div class="fc-media ph-exchange" id="fc1-icon"></div><div class="fc-body"><span class="badge badge-exchange">Exchange</span><strong>Road bicycle</strong><span class="small muted">Good condition</span></div></div>
+        <div class="swap-bubble" id="swap-bubble"></div>
+        <div class="float-card fc-2"><div class="fc-media ph-request" id="fc2-icon"></div><div class="fc-body"><span class="badge badge-request">Offer</span><strong>27" gaming monitor</strong><span class="small muted">Like new</span></div></div>
+        <div class="float-card fc-3"><div class="fc-media ph-giveaway" id="fc3-icon"></div><div class="fc-body"><span class="badge badge-giveaway">Free</span><strong>Box of children's books</strong><span class="small muted">Picked up in 2 hours</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="landing-section alt">
+    <div class="container">
+      <div class="section-title"><h2>How Swapp works</h2><p>From listing to hand-over in four simple steps, with every exchange tracked and confirmed by both people.</p></div>
+      <div class="feature-grid" id="steps"></div>
+    </div>
+  </section>
+
+  <section class="landing-section">
+    <div class="container">
+      <div class="section-title"><h2>Four ways to share</h2><p>Not everything needs a trade. Choose how you want each item to find its next home.</p></div>
+      <div class="feature-grid" id="ways"></div>
+    </div>
+  </section>
+
+  <section class="landing-section alt" id="fresh-section">
+    <div class="container">
+      <div class="section-head"><h2>Fresh on Swapp</h2><a href="/browse.html">See everything <span id="see-all-icon"></span></a></div>
+      <div class="item-grid" id="fresh-items"></div>
+    </div>
+  </section>
+
+  <section class="landing-section">
+    <div class="container">
+      <div class="section-title"><h2>Built on trust</h2><p>Swapp is designed so that every exchange is fair, transparent and safe.</p></div>
+      <div class="feature-grid" id="trust"></div>
+    </div>
+  </section>
+
+  <section class="landing-section" style="padding-top:0">
+    <div class="container">
+      <div class="cta-band">
+        <h2>Got something you no longer use?</h2>
+        <p>List it in under a minute. Someone nearby is probably looking for exactly that.</p>
+        <div class="hero-cta" style="justify-content:center" id="cta-band-actions">
+          <a class="btn btn-accent btn-lg" href="/register.html">Create your free account</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

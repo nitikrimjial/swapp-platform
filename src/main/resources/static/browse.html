@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browse items · Swapp</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/browse.js"></script>
+</head>
+<body>
+<main class="page" id="main">
+  <div class="container">
+    <div class="page-head">
+      <div><h1>Browse items</h1><p>Everything currently available in the community.</p></div>
+    </div>
+    <div class="browse-layout">
+      <aside class="filters card" id="filters" aria-label="Filters">
+        <form class="card-body" id="filter-form">
+          <div class="filter-group">
+            <label class="label" for="f-q">Search</label>
+            <div class="input-group"><span data-icon="search"></span><input class="input" id="f-q" name="q" type="search" placeholder="Title or description" maxlength="100"></div>
+          </div>
+          <div class="filter-group">
+            <span class="label">Listing type</span>
+            <div id="f-types"></div>
+          </div>
+          <div class="filter-group">
+            <label class="label" for="f-category">Category</label>
+            <select class="select" id="f-category" name="categoryId"><option value="">All categories</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="label" for="f-condition">Condition</label>
+            <select class="select" id="f-condition" name="condition"><option value="">Any condition</option></select>
+          </div>
+          <div class="filter-group">
+            <label class="label" for="f-location">Location</label>
+            <div class="input-group"><span data-icon="pin"></span><input class="input" id="f-location" name="location" placeholder="City or neighbourhood" maxlength="120"></div>
+          </div>
+          <div class="filter-group">
+            <button type="button" class="btn btn-secondary btn-block" id="reset-filters">Clear all filters</button>
+          </div>
+        </form>
+      </aside>
+      <section aria-live="polite">
+        <div class="results-bar">
+          <div class="row">
+            <button class="btn btn-secondary btn-sm mobile-filter-toggle" id="toggle-filters" aria-controls="filters" aria-expanded="false"></button>
+            <span class="muted" id="result-count"></span>
+          </div>
+          <div class="row">
+            <label class="small muted" for="f-sort">Sort</label>
+            <select class="select" id="f-sort" style="height:36px;width:auto">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </div>
+        </div>
+        <div class="item-grid" id="results"></div>
+        <div id="pager"></div>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>
