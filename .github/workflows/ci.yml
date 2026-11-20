@@ -9,15 +9,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:8.4
+      postgres:
+        image: postgres:17
         env:
-          MYSQL_ROOT_PASSWORD: ci-root-password
-          MYSQL_DATABASE: swapp_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: swapp_test
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="mysqladmin ping -h localhost"
+          --health-cmd="pg_isready -U postgres"
           --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v5
@@ -26,11 +27,11 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Run unit and integration tests against MySQL
+      - name: Run unit and integration tests against PostgreSQL
         env:
-          TEST_DB_URL: jdbc:mysql://127.0.0.1:3306/swapp_test?connectionTimeZone=UTC
-          TEST_DB_USERNAME: root
-          TEST_DB_PASSWORD: ci-root-password
+          TEST_DB_URL: jdbc:postgresql://127.0.0.1:5432/swapp_test
+          TEST_DB_USERNAME: postgres
+          TEST_DB_PASSWORD: ci-password
         run: ./mvnw -B verify
       - name: Upload test reports
         if: always()

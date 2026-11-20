@@ -1,17 +1,16 @@
-# Local full stack: MySQL 8.4 + Swapp. Usage: cp .env.example .env && docker compose up --build
+# Local full stack: PostgreSQL 17 + Swapp. Usage: cp .env.example .env && docker compose up --build
 services:
-  mysql:
-    image: mysql:8.4
+  postgres:
+    image: postgres:17
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: swapp
-      MYSQL_USER: ${DB_USERNAME:-swapp}
-      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      POSTGRES_DB: swapp
+      POSTGRES_USER: ${DB_USERNAME:-swapp}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-swapp} -d swapp"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -19,13 +18,13 @@ services:
   app:
     build: .
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     ports:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:mysql://mysql:3306/swapp?connectionTimeZone=UTC
+      DB_URL: jdbc:postgresql://postgres:5432/swapp
       DB_USERNAME: ${DB_USERNAME:-swapp}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
@@ -33,4 +32,4 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:8080
 
 volumes:
-  mysql-data:
+  postgres-data:

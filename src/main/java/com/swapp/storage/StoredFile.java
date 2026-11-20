@@ -2,12 +2,9 @@ package com.swapp.storage;
 
 import java.time.Instant;
 
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,9 +25,8 @@ public class StoredFile {
     @Column(name = "size_bytes", nullable = false)
     private long sizeBytes;
 
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "data", nullable = false, columnDefinition = "mediumblob")
+    /** Mapped to PostgreSQL BYTEA. */
+    @Column(name = "data", nullable = false)
     private byte[] data;
 
     @Column(name = "created_at", nullable = false)

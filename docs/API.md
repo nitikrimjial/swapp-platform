@@ -27,7 +27,7 @@ Password rules: 8-72 characters, at least one letter and one digit.
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
 | GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, avatarUrl, role, createdAt}` |
-| PUT | `/users/me` | user | `{displayName, bio?, location?}` |
+| PUT | `/users/me` | user | `{displayName, bio?, location?, latitude?, longitude?}`. The home location is private and used for `near me` defaults |
 | POST | `/users/me/avatar` | user | multipart `file` (JPEG/PNG/GIF/WebP, ≤ 5 MB) |
 | DELETE | `/users/me/avatar` | user | Remove avatar |
 | POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions and refreshes the cookie |
@@ -49,9 +49,9 @@ Password rules: 8-72 characters, at least one letter and one digit.
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/items` | public | Search available listings. Query: `q`, `categoryId`, `condition`, `type` (repeatable: `EXCHANGE`, `DONATION`, `GIVEAWAY`, `REQUEST`), `location`, `ownerId`, `excludeMine`, `sort` (`newest`/`oldest`), `page`, `size` |
-| GET | `/items/{id}` | public | Detail incl. `images[]` and `viewer` state (`owner`, `pendingOfferId`, `donationRequestStatus`, counts of pending offers/requests for owners) |
-| POST | `/items` | user | `{title, description, categoryId, condition, listingType, location}` → 201 |
+| GET | `/items` | public | Search available listings. Query: `q`, `categoryId`, `condition` (repeatable), `type` (repeatable: `EXCHANGE`, `DONATION`, `GIVEAWAY`, `REQUEST`), `location` (area name contains), `ownerId`, `excludeMine`, `postedWithinDays` (1-365), `withPhotos`, `lat` + `lng` (origin), `radiusKm` (0.1-200, needs an origin), `sort` (`newest`/`oldest`/`distance`), `page`, `size`. With an origin, each result includes `distanceKm` |
+| GET | `/items/{id}` | public | Detail incl. `images[]`, `hasCoordinates` (exact `latitude`/`longitude` only for the owner) and `viewer` state (`owner`, `pendingOfferId`, `donationRequestStatus`, counts of pending offers/requests for owners) |
+| POST | `/items` | user | `{title, description, categoryId, condition, listingType, location, latitude?, longitude?}` → 201. Coordinates are optional (both or neither) and stored rounded to about 110 m |
 | PUT | `/items/{id}` | owner | Same body. Changing the listing type closes pending offers and requests |
 | PATCH | `/items/{id}/status` | owner | `{status: AVAILABLE | UNAVAILABLE}`. Hiding closes pending offers and requests |
 | DELETE | `/items/{id}` | owner/admin | Soft delete → 204 (409 if reserved) |

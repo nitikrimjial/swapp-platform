@@ -22,6 +22,20 @@
       <aside class="filters card" id="filters" aria-label="Filters">
         <form class="card-body" id="filter-form">
           <div class="filter-group">
+            <span class="label">Near</span>
+            <div id="f-origin"></div>
+            <label class="label small" for="f-radius" style="margin:12px 0 6px;display:block">Within</label>
+            <select class="select" id="f-radius" name="radiusKm">
+              <option value="">Any distance</option>
+              <option value="1">1 km</option>
+              <option value="2">2 km</option>
+              <option value="5">5 km</option>
+              <option value="10">10 km</option>
+              <option value="25">25 km</option>
+              <option value="50">50 km</option>
+            </select>
+          </div>
+          <div class="filter-group">
             <label class="label" for="f-q">Search</label>
             <div class="input-group"><span data-icon="search"></span><input class="input" id="f-q" name="q" type="search" placeholder="Title or description" maxlength="100"></div>
           </div>
@@ -34,12 +48,23 @@
             <select class="select" id="f-category" name="categoryId"><option value="">All categories</option></select>
           </div>
           <div class="filter-group">
-            <label class="label" for="f-condition">Condition</label>
-            <select class="select" id="f-condition" name="condition"><option value="">Any condition</option></select>
+            <span class="label">Condition</span>
+            <div id="f-conditions"></div>
           </div>
           <div class="filter-group">
-            <label class="label" for="f-location">Location</label>
-            <div class="input-group"><span data-icon="pin"></span><input class="input" id="f-location" name="location" placeholder="City or neighbourhood" maxlength="120"></div>
+            <label class="label" for="f-posted">Posted</label>
+            <select class="select" id="f-posted" name="postedWithinDays">
+              <option value="">Any time</option>
+              <option value="1">Last 24 hours</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <span class="label">More</span>
+            <label class="checkbox"><input type="checkbox" id="f-photos" name="withPhotos">With photos only</label>
+            <label class="checkbox hidden" id="f-mine-wrap"><input type="checkbox" id="f-mine" name="excludeMine">Hide my listings</label>
+            <div class="input-group" style="margin-top:10px"><span data-icon="pin"></span><input class="input" id="f-location" name="location" placeholder="Area name contains…" maxlength="120" aria-label="Area name contains"></div>
           </div>
           <div class="filter-group">
             <button type="button" class="btn btn-secondary btn-block" id="reset-filters">Clear all filters</button>
@@ -56,10 +81,12 @@
             <label class="small muted" for="f-sort">Sort</label>
             <select class="select" id="f-sort" style="height:36px;width:auto">
               <option value="newest">Newest first</option>
+              <option value="distance">Nearest first</option>
               <option value="oldest">Oldest first</option>
             </select>
           </div>
         </div>
+        <div class="chips" id="active-filters" style="margin-bottom:14px"></div>
         <div class="item-grid" id="results"></div>
         <div id="pager"></div>
       </section>

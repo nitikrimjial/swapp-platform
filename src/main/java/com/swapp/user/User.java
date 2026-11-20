@@ -39,6 +39,11 @@ public class User extends BaseEntity {
     @Column(name = "avatar_key", length = 100)
     private String avatarKey;
 
+    /** Optional home location (rounded to ~100 m): default for new listings and "near me" feeds. */
+    private Double latitude;
+
+    private Double longitude;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 20)

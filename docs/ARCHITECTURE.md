@@ -16,7 +16,7 @@ Services (business rules, transactions, row locks, notifications)
    │                         │
 Repositories (Spring Data JPA)   ApplicationEvent ──► RealtimeHub (after commit) ──► WebSocket sessions
    │
-MySQL 8 (Flyway-managed schema)
+PostgreSQL 17 (Flyway-managed schema)
 ```
 
 The code is organised **by feature** (`item`, `offer`, `exchange`, …). Each feature owns its entity, repository, service, controller and DTOs. Controllers contain no business logic. Entities are never serialised directly: every response is a DTO record.
@@ -25,14 +25,14 @@ The code is organised **by feature** (`item`, `offer`, `exchange`, …). Each fe
 
 | Table | Purpose | Key constraints |
 | --- | --- | --- |
-| `users` | Accounts | unique `email`; `token_version` for revocation |
+| `users` | Accounts | unique `lower(email)`; `token_version` for revocation; optional home `latitude`/`longitude` |
 | `categories` | Seeded reference data | unique `name`, `slug` |
-| `items` | Listings | FK owner and category; CHECK on condition, type and status; `version` for optimistic locking; browse indexes |
+| `items` | Listings | FK owner and category; CHECK on condition, type, status and coordinates; `version` for optimistic locking; browse indexes; partial geo index; `pg_trgm` GIN indexes on title, description and location |
 | `item_images` | Ordered listing photos | FK item `ON DELETE CASCADE`; unique storage key |
 | `stored_files` | Image bytes (database storage mode) | PK storage key |
-| `offers` | Exchange offers | FKs to both items and both users; CHECK requested ≠ offered and offerer ≠ recipient; **unique `pending_key`** generated column, so only one pending offer per item pair |
-| `exchanges` | Accepted offers | unique `offer_id`; **unique `active_owner_item` / `active_requester_item`** generated columns, so an item is in at most one active exchange |
-| `donation_requests` | Requests for donations and giveaways | **unique `active_key`** (one active request per user per item) and **unique `accepted_item`** (one accepted request per item) |
+| `offers` | Exchange offers | FKs to both items and both users; CHECK requested ≠ offered and offerer ≠ recipient; **partial unique index** on (requested, offered) `WHERE status = 'PENDING'`, so only one pending offer per item pair |
+| `exchanges` | Accepted offers | unique `offer_id`; **partial unique indexes** on each item `WHERE status = 'ACTIVE'`, so an item is in at most one active exchange |
+| `donation_requests` | Requests for donations and giveaways | partial unique indexes: one active request per user per item, and one accepted request per item |
 | `conversations` | One thread per user pair | unique (`user_one_id`, `user_two_id`), CHECK `user_one_id < user_two_id` |
 | `messages` | Chat messages | FK conversation `ON DELETE CASCADE`; optional item reference; `read_at` |
 | `notifications` | Persistent notifications | FK recipient; `read_at` |
@@ -58,7 +58,7 @@ Every state-changing workflow runs in one transaction and takes **pessimistic ro
 
 Before locking, services read only foreign keys through projection queries (`findRefs`), so no stale entity state is in the persistence context when the locked rows are loaded. After locking, all preconditions are re-checked.
 
-The consistent lock order serialises conflicting operations (two accepts for the same item, accept against cancel, accept against hiding the listing) and avoids deadlocks. In the rare case the database reports a lock conflict anyway, it is translated into HTTP 409 with a "please retry" message. The unique indexes on generated columns are a second line of defence that the database itself enforces.
+The consistent lock order serialises conflicting operations (two accepts for the same item, accept against cancel, accept against hiding the listing) and avoids deadlocks. In the rare case the database reports a lock conflict anyway, it is translated into HTTP 409 with a "please retry" message. The partial unique indexes are a second line of defence that the database itself enforces.
 
 `ConcurrencyIntegrationTest` starts competing operations on separate threads behind a shared latch and asserts that exactly one succeeds and the database ends in a consistent state.
 
@@ -77,11 +77,22 @@ The consistent lock order serialises conflicting operations (two accepts for the
 - **Frontend:** every dynamic value is HTML-escaped by the `html` tagged template in `ui.js`; redirects via `?next=` accept only same-origin paths.
 - **Secrets:** environment variables only. The `prod` profile has no defaults for the database or JWT secret.
 
+## Location search ("near me")
+
+Listings and profiles can carry optional coordinates, set from the browser's geolocation or from an OpenStreetMap (Nominatim) place search. The server rounds them to three decimals (about 110 m), so exact addresses are never stored. Coordinates are only returned to a listing's owner; everyone else sees a distance.
+
+A radius query (`lat`, `lng`, `radiusKm`) runs in two stages inside one SQL statement:
+
+1. **Bounding box:** `latitude`/`longitude BETWEEN` the square around the circle. This uses the partial index `idx_items_geo` and discards almost every row cheaply.
+2. **Exact distance:** the spherical law of cosines, computed in SQL (`6371 * acos(…)`), filters the remaining rows to the true circle and orders them for `sort=distance`.
+
+This needs no extensions and is accurate to well under 1% at city scale. If the dataset grows to millions of rows, the natural upgrade is PostGIS (`geography` column with a GiST index and `ST_DWithin`).
+
 ## Image storage
 
 `StorageService` has two implementations, selected with `STORAGE_TYPE`:
 
-- `database` (default): bytes live in `stored_files`. Images therefore persist across redeploys on any platform and are covered by database backups.
+- `database` (default): bytes live in `stored_files` (`bytea`). Images therefore persist across redeploys on any platform and are covered by database backups. The browser resizes photos to at most 1600 px (JPEG) before upload, so a typical photo takes 200-400 KB.
 - `filesystem`: files go on a mounted persistent volume (for example EBS on EC2).
 
 ## Error handling

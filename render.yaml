@@ -1,5 +1,5 @@
 # Render Blueprint: https://render.com/docs/blueprint-spec
-# Deploys the Docker image as a free web service with HTTPS. MySQL comes from an external provider (e.g. Aiven free tier).
+# Deploys the Docker image as a free web service with HTTPS. PostgreSQL comes from Neon's free tier (no expiry).
 services:
   - type: web
     name: swapp
@@ -13,9 +13,9 @@ services:
       - key: JWT_SECRET
         generateValue: true          # Render generates a random 256-bit secret
       - key: DB_POOL_SIZE
-        value: "5"                   # free MySQL tiers allow few connections
+        value: "5"                   # keep well under the free tier's connection limit
       - key: DB_URL
-        sync: false                  # e.g. jdbc:mysql://HOST:PORT/defaultdb?sslMode=REQUIRED&connectionTimeZone=UTC
+        sync: false                  # jdbc:postgresql://<neon-host>/<db>?sslmode=require
       - key: DB_USERNAME
         sync: false
       - key: DB_PASSWORD

@@ -62,6 +62,12 @@ export function formatTime(iso) {
   return iso ? new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
 }
 
+export function formatDistance(km) {
+  if (km === null || km === undefined) return '';
+  if (km < 1) return `${Math.max(100, Math.round(km * 10) * 100)} m away`;
+  return `${km < 10 ? km.toFixed(1) : Math.round(km)} km away`;
+}
+
 export const CONDITIONS = { NEW: 'New', LIKE_NEW: 'Like new', GOOD: 'Good', FAIR: 'Fair', FOR_PARTS: 'For parts' };
 export const LISTING_TYPES = {
   EXCHANGE: { label: 'Exchange', icon: 'swap', cls: 'exchange', desc: 'Trade it for something you need' },
@@ -123,7 +129,8 @@ export function itemCard(item, { actions, showStatus } = {}) {
       </div>
       <div class="item-body">
         <div class="item-title">${item.title}</div>
-        <div class="item-meta">${icon('pin')}<span class="ellipsis">${item.location}</span></div>
+        <div class="item-meta">${icon('pin')}<span class="ellipsis">${item.location}</span>
+          ${item.distanceKm !== null && item.distanceKm !== undefined ? html`<span class="distance-tag">· ${formatDistance(item.distanceKm)}</span>` : ''}</div>
         <div class="item-foot"><span>${CONDITIONS[item.condition] || ''}</span><span>${timeAgo(item.createdAt)}</span></div>
       </div>
     </a>

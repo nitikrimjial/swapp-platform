@@ -4,7 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.sql.Statement;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +13,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -46,16 +45,7 @@ public abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
-        jdbc.execute((ConnectionCallback<Void>) con -> {
-            try (Statement st = con.createStatement()) {
-                st.execute("SET FOREIGN_KEY_CHECKS = 0");
-                for (String table : TABLES) {
-                    st.execute("TRUNCATE TABLE " + table);
-                }
-                st.execute("SET FOREIGN_KEY_CHECKS = 1");
-            }
-            return null;
-        });
+        jdbc.execute("TRUNCATE TABLE " + String.join(", ", TABLES) + " RESTART IDENTITY CASCADE");
     }
 
     // ---------------------------------------------------------------- helpers
@@ -83,9 +73,19 @@ public abstract class AbstractIntegrationTest {
 
     protected long createItem(TestUser owner, String title, String listingType, String categorySlug, String condition,
                               String location) throws Exception {
-        var payload = Map.of("title", title, "description", "A well looked-after " + title + " in working order.",
+        return createItemAt(owner, title, listingType, categorySlug, condition, location, null, null);
+    }
+
+    protected long createItemAt(TestUser owner, String title, String listingType, String categorySlug,
+                                String condition, String location, Double lat, Double lng) throws Exception {
+        Map<String, Object> payload = new HashMap<>(Map.of("title", title,
+                "description", "A well looked-after " + title + " in working order.",
                 "categoryId", categoryId(categorySlug), "condition", condition, "listingType", listingType,
-                "location", location);
+                "location", location));
+        if (lat != null) {
+            payload.put("latitude", lat);
+            payload.put("longitude", lng);
+        }
         MvcResult result = mvc.perform(auth(post("/api/items"), owner).contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(payload)))
                 .andExpect(status().isCreated()).andReturn();

@@ -26,13 +26,18 @@
               <label class="btn btn-secondary btn-sm" for="avatar-input" id="avatar-upload-label">Upload photo</label>
               <input type="file" id="avatar-input" accept="image/jpeg,image/png,image/gif,image/webp" class="sr-only">
               <button type="button" class="btn btn-ghost btn-sm" id="avatar-remove">Remove</button>
-              <span class="small muted" style="flex-basis:100%">JPEG, PNG, GIF or WebP, up to 5 MB.</span>
+              <span class="small muted" style="flex-basis:100%">JPEG, PNG, GIF or WebP. Resized automatically.</span>
             </div>
           </div>
           <form id="profile-form" novalidate>
             <div class="form-grid cols-2">
               <div class="field"><label for="displayName">Display name</label><input class="input" id="displayName" name="displayName" maxlength="80" required></div>
               <div class="field"><label for="location">Location</label><input class="input" id="location" name="location" maxlength="120" placeholder="Neighbourhood or city"></div>
+            </div>
+            <div class="field">
+              <span class="label">Home location on the map</span>
+              <div id="home-picker"></div>
+              <span class="hint">Used for your "Near you" feed and as the default for new listings. Stored approximately (about 100 m) and never shown to others.</span>
             </div>
             <div class="field"><label for="bio">Bio</label><textarea class="textarea" id="bio" name="bio" maxlength="500" placeholder="A few words about you and what you like to swap"></textarea><span class="char-count" id="bio-count"></span></div>
             <div class="row" style="justify-content:flex-end"><button class="btn btn-primary" type="submit" data-loading-text="Saving">Save profile</button></div>

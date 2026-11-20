@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.swapp.category.Category;
 import com.swapp.category.CategoryRepository;
 import com.swapp.common.ApiException;
+import com.swapp.common.GeoPoint;
 import com.swapp.common.PageResponse;
 import com.swapp.config.AppProperties;
 import com.swapp.donation.DonationRequestRepository;
@@ -78,11 +79,18 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public PageResponse<ItemSummaryDto> search(ItemSearchCriteria criteria, int page, int size, String sort) {
-        Sort order = "oldest".equalsIgnoreCase(sort)
-                ? Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by("id"))
-                : Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        Sort order;
+        if (criteria.nearestFirst()) {
+            order = Sort.unsorted(); // distance ordering is applied inside the specification
+        } else if ("oldest".equalsIgnoreCase(sort)) {
+            order = Sort.by(Sort.Direction.ASC, "createdAt").and(Sort.by("id"));
+        } else {
+            order = Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"));
+        }
         var pageable = PageResponse.request(page, size, order);
-        return PageResponse.from(items.findAll(ItemSpecifications.matching(criteria), pageable), ItemSummaryDto::from);
+        GeoPoint origin = criteria.origin();
+        return PageResponse.from(items.findAll(ItemSpecifications.matching(criteria), pageable),
+                item -> ItemSummaryDto.from(item, origin));
     }
 
     @Transactional(readOnly = true)
@@ -218,6 +226,8 @@ public class ItemService {
         item.setCondition(request.condition());
         item.setListingType(request.listingType());
         item.setLocation(request.location().trim());
+        GeoPoint point = GeoPoint.ofNullable(request.latitude(), request.longitude());
+        item.setPoint(point == null ? null : point.rounded());
     }
 
     private Item lockOwned(Long id, AuthUser me) {

@@ -4,10 +4,11 @@ import {
   html, render, icon, $, $$, param, CONDITIONS, LISTING_TYPES, toast, withLoading, showErrors, clearErrors,
   fieldError, errorState, emptyState, confirmDialog, safeNext,
 } from '../ui.js';
+import { prepareImage, ACCEPTED_TYPES } from '../images.js';
+import { locationPicker } from '../location.js';
 
 const MAX_IMAGES = 6;
-const MAX_BYTES = 5 * 1024 * 1024;
-const ACCEPTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ACCEPTED = ACCEPTED_TYPES;
 
 const mode = document.body.dataset.mode; // create | edit
 const { user } = await initPage({ auth: 'required', active: mode === 'create' ? 'new' : '' });
@@ -16,6 +17,7 @@ const root = $('#form-root');
 let item = null;              // existing item (edit mode)
 let queued = [];              // { file, url } not yet uploaded
 let categories = [];
+let pointPicker = null;       // map location widget
 
 try {
   categories = await http.get('/api/categories');
@@ -76,16 +78,21 @@ function renderForm() {
           </select>
         </div>
       </div>
-      <div class="field" style="margin-bottom:0">
-        <label for="location">Location</label>
+      <div class="field">
+        <label for="location">Area name</label>
         <div class="input-group">${icon('pin')}<input class="input" id="location" name="location" maxlength="120" required placeholder="Neighbourhood or city"></div>
         <span class="hint">Only share a general area. Arrange exact meeting points in messages.</span>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <span class="label">Map location <span class="muted">(recommended)</span></span>
+        <div id="loc-picker"></div>
+        <span class="hint">Lets people find your listing with "near me" search. Only the distance is shown to others, and the point is stored approximately (about 100 m).</span>
       </div>
     </div></div>
 
     <div class="card"><div class="card-body">
       <h2>Photos</h2>
-      <p class="muted small">Up to ${MAX_IMAGES} photos (JPEG, PNG, GIF or WebP, max 5 MB each). The first photo is the cover.</p>
+      <p class="muted small">Up to ${MAX_IMAGES} photos (JPEG, PNG, GIF or WebP). Large photos are resized automatically. The first photo is the cover.</p>
       <label class="dropzone" id="dropzone" tabindex="0">
         ${icon('upload')}<strong>Click to add photos or drag them here</strong>
         <span class="small">Good photos get more offers</span>
@@ -111,6 +118,18 @@ function renderForm() {
   } else if (user.location) {
     f.location.value = user.location;
   }
+  let initialPoint = null;
+  if (item && item.latitude !== null && item.latitude !== undefined) {
+    initialPoint = { lat: item.latitude, lng: item.longitude, name: item.location };
+  } else if (!item && user.latitude !== null && user.latitude !== undefined) {
+    initialPoint = { lat: user.latitude, lng: user.longitude, name: user.location || 'My home location' };
+  }
+  pointPicker = locationPicker($('#loc-picker'), {
+    value: initialPoint,
+    emptyText: 'Not pinned: this listing won\'t appear in "near me" results',
+    onChange: (v) => { if (v && v.name && !f.location.value.trim()) f.location.value = v.name; },
+  });
+
   const count = () => { $('#desc-count').textContent = `${f.description.value.length} / 4000`; };
   f.description.addEventListener('input', count);
   count();
@@ -143,12 +162,17 @@ async function addFiles(fileList) {
   const files = Array.from(fileList);
   const rejected = [];
   const accepted = [];
+  const zone = $('#dropzone');
+  zone.classList.add('dragover');
   for (const file of files) {
-    if (!ACCEPTED.includes(file.type)) rejected.push(`${file.name}: unsupported format`);
-    else if (file.size > MAX_BYTES) rejected.push(`${file.name}: larger than 5 MB`);
-    else if (imageCount() + accepted.length >= MAX_IMAGES) rejected.push(`${file.name}: maximum of ${MAX_IMAGES} photos`);
-    else accepted.push(file);
+    if (imageCount() + accepted.length >= MAX_IMAGES) { rejected.push(`${file.name}: maximum of ${MAX_IMAGES} photos`); continue; }
+    try {
+      accepted.push(await prepareImage(file)); // resized + compressed in the browser
+    } catch (err) {
+      rejected.push(err.message);
+    }
   }
+  zone.classList.remove('dragover');
   if (rejected.length) toast(rejected.join(' · '), 'error', { title: 'Some photos were skipped' });
   if (!accepted.length) return;
 
@@ -229,6 +253,8 @@ function collect(form) {
     condition: f.condition.value || null,
     listingType: $('input[name=listingType]:checked', form).value,
     location: f.location.value.trim(),
+    latitude: pointPicker && pointPicker.get() ? pointPicker.get().lat : null,
+    longitude: pointPicker && pointPicker.get() ? pointPicker.get().lng : null,
   };
 }
 

@@ -17,8 +17,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     /** Race-free "create if absent": the unique (user_one_id, user_two_id) key makes concurrent inserts collapse. */
     @Modifying
-    @Query(value = "INSERT IGNORE INTO conversations (user_one_id, user_two_id, last_message_at, created_at, updated_at) "
-            + "VALUES (:one, :two, :now, :now, :now)", nativeQuery = true)
+    @Query(value = "INSERT INTO conversations (user_one_id, user_two_id, last_message_at, created_at, updated_at) "
+            + "VALUES (:one, :two, :now, :now, :now) ON CONFLICT (user_one_id, user_two_id) DO NOTHING", nativeQuery = true)
     int insertIfAbsent(@Param("one") Long userOneId, @Param("two") Long userTwoId, @Param("now") Instant now);
 
     @EntityGraph(attributePaths = {"userOne", "userTwo"})

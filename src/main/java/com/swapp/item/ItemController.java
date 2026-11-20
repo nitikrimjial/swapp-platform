@@ -1,5 +1,7 @@
 package com.swapp.item;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.swapp.common.ApiException;
+import com.swapp.common.GeoPoint;
 import com.swapp.common.PageResponse;
 import com.swapp.item.dto.ItemDtos.ImageOrderRequest;
 import com.swapp.item.dto.ItemDtos.ItemDetailDto;
@@ -28,6 +32,10 @@ import com.swapp.item.dto.ItemDtos.ItemSummaryDto;
 import com.swapp.security.AuthUser;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 @RestController
@@ -40,21 +48,36 @@ public class ItemController {
         this.service = service;
     }
 
-    /** Public discovery endpoint. Every filter is applied in the database query. */
+    /**
+     * Public discovery endpoint. Every filter is applied in the database query.
+     * Distance search: pass {@code lat}, {@code lng} and {@code radiusKm}; {@code sort=distance} orders nearest first.
+     */
     @GetMapping
     public PageResponse<ItemSummaryDto> search(@AuthenticationPrincipal AuthUser me,
                                                @RequestParam(required = false) @Size(max = 100) String q,
                                                @RequestParam(required = false) Long categoryId,
-                                               @RequestParam(required = false) ItemCondition condition,
+                                               @RequestParam(required = false) List<ItemCondition> condition,
                                                @RequestParam(required = false) List<ListingType> type,
                                                @RequestParam(required = false) @Size(max = 120) String location,
                                                @RequestParam(required = false) Long ownerId,
                                                @RequestParam(defaultValue = "false") boolean excludeMine,
+                                               @RequestParam(required = false) @Min(1) @Max(365) Integer postedWithinDays,
+                                               @RequestParam(defaultValue = "false") boolean withPhotos,
+                                               @RequestParam(required = false) Double lat,
+                                               @RequestParam(required = false) Double lng,
+                                               @RequestParam(required = false) @DecimalMin("0.1") @DecimalMax("200") Double radiusKm,
                                                @RequestParam(defaultValue = "newest") String sort,
                                                @RequestParam(defaultValue = "0") int page,
                                                @RequestParam(defaultValue = "12") int size) {
         Long excludeOwner = excludeMine && me != null ? me.id() : null;
-        var criteria = new ItemSearchCriteria(q, categoryId, condition, type, location, ownerId, excludeOwner);
+        GeoPoint origin = GeoPoint.ofNullable(lat, lng);
+        if (radiusKm != null && origin == null) {
+            throw ApiException.badRequest("A radius needs a location (lat and lng)");
+        }
+        Instant postedAfter = postedWithinDays == null ? null : Instant.now().minus(postedWithinDays, ChronoUnit.DAYS);
+        boolean nearestFirst = "distance".equalsIgnoreCase(sort) && origin != null;
+        var criteria = new ItemSearchCriteria(q, categoryId, condition, type, location, ownerId, excludeOwner,
+                postedAfter, withPhotos, origin, radiusKm, nearestFirst);
         return service.search(criteria, page, size, sort);
     }
 

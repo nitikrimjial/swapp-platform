@@ -40,8 +40,11 @@ void PNG;
 // Uses an installed browser: BROWSER_CHANNEL=msedge (default) or chrome.
 const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'msedge', headless: true });
 
-async function newUser(name) {
-  const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+async function newUser(name, geolocation) {
+  const context = await browser.newContext({
+    viewport: { width: 1360, height: 900 },
+    ...(geolocation ? { geolocation, permissions: ['geolocation'] } : {}),
+  });
   const page = await context.newPage();
   page.on('console', (m) => {
     if (m.type() !== 'error') return;
@@ -75,9 +78,13 @@ async function register(u, location) {
   await u.page.waitForURL(/home\.html/);
 }
 
-async function createListing(u, { title, description, type, category, condition, image }) {
+async function createListing(u, { title, description, type, category, condition, image, pinWithGps }) {
   await u.page.goto(`${BASE}/item-new.html`);
   await u.page.locator(`input[name=listingType][value=${type}]`).check({ force: true });
+  if (pinWithGps) {
+    await u.page.click('#loc-picker [data-gps]');
+    await u.page.waitForSelector('#loc-picker .loc-status.set', { timeout: 15000 });
+  }
   await u.page.fill('#title', title);
   await u.page.fill('#description', description);
   await u.page.selectOption('#categoryId', { label: category });
@@ -110,8 +117,9 @@ try {
   step('Unknown URLs show the styled 404 page');
 
   // ---------- 1-2. register two users
-  const alice = await newUser('Alice');
-  const bob = await newUser('Bob');
+  // Simulated device locations: Alice in Koramangala, Bob in HSR Layout (~3 km apart), Bengaluru.
+  const alice = await newUser('Alice', { latitude: 12.9352, longitude: 77.6245 });
+  const bob = await newUser('Bob', { latitude: 12.9116, longitude: 77.6389 });
   await register(alice, 'Springfield');
   step(`Registered ${alice.email}`);
   await register(bob, 'Springfield');
@@ -121,10 +129,10 @@ try {
   const bikeTitle = `Road bicycle ${run}`;
   const bikeId = await createListing(alice, {
     title: bikeTitle, description: 'Lightweight aluminium road bike, 54cm frame, recently serviced with new brake pads.',
-    type: 'EXCHANGE', category: 'Bikes & Vehicles', condition: 'GOOD', image: imgPath,
+    type: 'EXCHANGE', category: 'Bikes & Vehicles', condition: 'GOOD', image: imgPath, pinWithGps: true,
   });
   await alice.page.waitForSelector('.gallery-main img');
-  step(`Alice created listing #${bikeId} with a photo`);
+  step(`Alice created listing #${bikeId} with a photo, pinned with "Use my location"`);
 
   // edit listing
   await alice.page.goto(`${BASE}/item-edit.html?id=${bikeId}`);
@@ -160,6 +168,21 @@ try {
   await bob.page.waitForSelector('.section .item-card');
   await shot(bob.page, '04-home.png');
   step('Bob found the listing via search and filters');
+
+  // "Near me": Bob uses his device location and sees Alice's bike ~3 km away
+  await bob.page.goto(`${BASE}/browse.html?near=me`);
+  await bob.page.click('#f-origin [data-gps]');
+  await bob.page.waitForSelector('#f-origin .loc-status.set', { timeout: 15000 });
+  const bikeCard = bob.page.locator(`.item-card:has-text("${bikeTitle}")`);
+  await bikeCard.waitFor();
+  const distanceText = await bikeCard.locator('.distance-tag').innerText();
+  if (!/\b[2-4](\.\d)? km away/.test(distanceText)) errors.push(`Unexpected distance label: ${distanceText}`);
+  await bob.page.selectOption('#f-radius', '1');
+  await bikeCard.waitFor({ state: 'detached' }); // ~3 km away, so it must not appear within 1 km
+  await bob.page.selectOption('#f-radius', '5');
+  await bikeCard.waitFor();
+  await shot(bob.page, '05b-near-me.png');
+  step(`"Near me" works: Bob sees the bike ${distanceText.replace('· ', '')}, and it disappears at 1 km`);
 
   // ---------- 6. Bob submits an exchange offer from the item page
   await bob.page.goto(`${BASE}/item.html?id=${bikeId}`);

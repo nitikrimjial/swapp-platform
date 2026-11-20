@@ -8,6 +8,7 @@ import org.hibernate.type.SqlTypes;
 
 import com.swapp.category.Category;
 import com.swapp.common.BaseEntity;
+import com.swapp.common.GeoPoint;
 import com.swapp.user.User;
 
 import jakarta.persistence.CascadeType;
@@ -65,6 +66,11 @@ public class Item extends BaseEntity {
     @Column(nullable = false, length = 120)
     private String location;
 
+    /** Optional approximate coordinates (rounded to ~100 m) for "near me" search. */
+    private Double latitude;
+
+    private Double longitude;
+
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
     private List<ItemImage> images = new ArrayList<>();
@@ -78,6 +84,15 @@ public class Item extends BaseEntity {
 
     public boolean isAvailable() {
         return status == ItemStatus.AVAILABLE;
+    }
+
+    public GeoPoint point() {
+        return latitude == null || longitude == null ? null : new GeoPoint(latitude, longitude);
+    }
+
+    public void setPoint(GeoPoint point) {
+        this.latitude = point == null ? null : point.latitude();
+        this.longitude = point == null ? null : point.longitude();
     }
 
     public String coverImageKey() {

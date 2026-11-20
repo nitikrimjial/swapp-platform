@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.swapp.common.ApiException;
+import com.swapp.common.GeoPoint;
 import com.swapp.donation.DonationRequestRepository;
 import com.swapp.donation.DonationRequestStatus;
 import com.swapp.exchange.ExchangeRepository;
@@ -76,6 +77,9 @@ public class UserService {
         user.setDisplayName(request.displayName().trim());
         user.setBio(StringUtils.hasText(request.bio()) ? request.bio().trim() : null);
         user.setLocation(StringUtils.hasText(request.location()) ? request.location().trim() : null);
+        GeoPoint point = GeoPoint.ofNullable(request.latitude(), request.longitude());
+        user.setLatitude(point == null ? null : point.rounded().latitude());
+        user.setLongitude(point == null ? null : point.rounded().longitude());
         return UserDto.from(user);
     }
 

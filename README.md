@@ -12,7 +12,7 @@ Swapp lets neighbours list things they no longer use, offer their own items in e
 | --- | --- |
 | **Accounts** | Registration, sign-in/out, BCrypt password hashing, JWT in an HttpOnly `SameSite=Strict` cookie, profile editing, avatar upload, password change (revokes other sessions), "sign out everywhere" |
 | **Listings** | Create, edit, delete (soft delete keeps history), up to 6 photos per listing with reorder / cover selection, mark available / unavailable. Four listing types: **Exchange**, **Donation**, **Free giveaway**, **Request** |
-| **Discovery** | Full-text search over title and description, filters for category, condition, listing type and location, newest/oldest sort, pagination. Every filter is a database query |
+| **Discovery** | **Near me**: radius search (1-50 km) from your GPS position or any searched place, sorted nearest first with distance on every card. Search over title and description (trigram-indexed), filters for category, multiple conditions, listing type, posted within, photos only and hide my listings, plus pagination. Every filter runs in the database |
 | **Exchange offers** | Offer one of your items for someone else's; accept, decline or withdraw. Business rules enforced transactionally with row locks (see below) |
 | **Exchange tracking** | Accepted offers create an exchange record. Both participants must confirm the hand-over; either can cancel, which releases both items |
 | **Donations & giveaways** | A separate request workflow: users request the item, the owner chooses who receives it, then marks it handed over |
@@ -24,7 +24,7 @@ Swapp lets neighbours list things they no longer use, offer their own items in e
 
 - Users cannot make offers on their own listings or offer items they don't own.
 - Only available items listed for exchange can be offered or requested.
-- Duplicate pending offers for the same item pair are rejected, by the service and by a unique index on a generated column.
+- Duplicate pending offers for the same item pair are rejected, by the service and by a partial unique index.
 - Only the owner of the requested item can accept or reject; only the offerer can withdraw.
 - Accepting an offer, in **one transaction**: locks both items (`SELECT … FOR UPDATE`, in id order), re-checks availability, reserves both items, creates the exchange, and automatically closes every other pending offer involving either item, notifying the people affected.
 - An item can never be in two active exchanges. This is guaranteed by row locking and backed by a unique index.
@@ -33,16 +33,16 @@ Swapp lets neighbours list things they no longer use, offer their own items in e
 ## Tech stack
 
 - **Backend:** Java 21, Spring Boot 3.5, Spring Security, Spring Data JPA / Hibernate, Bean Validation, Spring WebSocket, Actuator, JJWT
-- **Database:** MySQL 8.4 with Flyway migrations (foreign keys, check constraints, unique indexes on generated columns)
+- **Database:** PostgreSQL 17 with Flyway migrations (foreign keys, check constraints, partial unique indexes, pg_trgm search indexes, geo bounding-box index)
 - **Frontend:** HTML5, CSS3 and vanilla JavaScript (ES modules), served by Spring Boot. No build step, and a strict Content-Security-Policy with no inline scripts
-- **Testing:** JUnit 5, Mockito, MockMvc against a real MySQL database, and Playwright browser journeys
-- **Ops:** Dockerfile (multi-stage, non-root), docker-compose, GitHub Actions CI with a MySQL service container
+- **Testing:** JUnit 5, Mockito, MockMvc against a real PostgreSQL database, and Playwright browser journeys (including simulated GPS)
+- **Ops:** Dockerfile (multi-stage, non-root), docker-compose, GitHub Actions CI with a PostgreSQL service container, Render Blueprint
 
 ## Screenshots
 
 | | |
 | --- | --- |
-| ![Browse](docs/screenshots/05-browse.png) | ![Item](docs/screenshots/06-item-detail.png) |
+| ![Near me](docs/screenshots/05b-near-me.png) | ![Item](docs/screenshots/06-item-detail.png) |
 | ![Offer dialog](docs/screenshots/07-offer-dialog.png) | ![Incoming offers](docs/screenshots/13-offers-incoming.png) |
 | ![Exchanges](docs/screenshots/15-exchanges.png) | ![Messages](docs/screenshots/17-messages.png) |
 | ![Dashboard](docs/screenshots/10-dashboard.png) | ![Mobile](docs/screenshots/22-mobile-item.png) |
@@ -54,7 +54,7 @@ More in [`docs/screenshots`](docs/screenshots).
 ### Prerequisites
 
 - Java 21 (Maven is included via the `mvnw` wrapper)
-- MySQL 8.x running locally, **or** Docker
+- PostgreSQL 14+ running locally, **or** Docker
 
 ### Option A: Docker Compose (app and database)
 
@@ -64,13 +64,13 @@ docker compose up --build
 # open http://localhost:8080
 ```
 
-### Option B: run locally with your own MySQL
+### Option B: run locally with your own PostgreSQL
 
 ```bash
-# Create a database user (or use root locally)
-mysql -u root -p -e "CREATE DATABASE swapp; CREATE USER 'swapp'@'localhost' IDENTIFIED BY 'change-me'; GRANT ALL ON swapp.* TO 'swapp'@'localhost';"
+# Create the databases (app + tests)
+psql -U postgres -c "CREATE DATABASE swapp;" -c "CREATE DATABASE swapp_test;"
 
-export DB_USERNAME=swapp DB_PASSWORD=change-me
+export DB_USERNAME=postgres DB_PASSWORD=yourpassword
 export JWT_SECRET="$(openssl rand -base64 48)"
 ./mvnw spring-boot:run          # Windows: mvnw.cmd spring-boot:run
 # open http://localhost:8080
@@ -89,14 +89,14 @@ cd e2e && npm install && node seed.mjs http://localhost:8080
 
 ### Running the tests
 
-The integration tests use a **real MySQL database** (`swapp_test`, created automatically):
+The integration tests use a **real PostgreSQL database** (`swapp_test`):
 
 ```bash
-export TEST_DB_USERNAME=root TEST_DB_PASSWORD=yourpassword   # defaults: root / empty
+export TEST_DB_USERNAME=postgres TEST_DB_PASSWORD=yourpassword   # defaults: postgres / empty
 ./mvnw verify
 ```
 
-67 tests cover unit logic, every controller, authentication and authorisation, item CRUD and filters, image validation, the full offer and exchange journey, the donation workflow, messaging privacy, database constraints and concurrent conflicting operations.
+78 tests cover unit logic, every controller, authentication and authorisation, item CRUD and filters, radius search and distance sorting, image validation, the full offer and exchange journey, the donation workflow, messaging privacy, database constraints and concurrent conflicting operations.
 
 Browser journey (registers two users and walks the whole product through the UI):
 
@@ -109,13 +109,13 @@ cd e2e && npm install && node journey.mjs http://localhost:8080 ./shots
 | Variable | Required in prod | Default (dev) | Description |
 | --- | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE` | yes (`prod`) | `default` | `prod` enforces secrets and secure cookies |
-| `DB_URL` | yes | `jdbc:mysql://localhost:3306/swapp?...` | JDBC URL of the MySQL database |
-| `DB_USERNAME` / `DB_PASSWORD` | yes | `root` / empty | Database credentials |
+| `DB_URL` | yes | `jdbc:postgresql://localhost:5432/swapp` | JDBC URL of the PostgreSQL database |
+| `DB_USERNAME` / `DB_PASSWORD` | yes | `postgres` / empty | Database credentials |
 | `JWT_SECRET` | yes | ephemeral | HMAC signing key, at least 32 bytes |
 | `JWT_EXPIRATION` | no | `P7D` | Session lifetime (ISO-8601 duration) |
 | `COOKIE_SECURE` | no | `false` (`true` in prod) | Send the auth cookie over HTTPS only |
 | `CORS_ALLOWED_ORIGINS` | yes | `http://localhost:8080` | Comma-separated allowed browser origins |
-| `STORAGE_TYPE` | no | `database` | `database` stores images in MySQL; `filesystem` stores them on a volume |
+| `STORAGE_TYPE` | no | `database` | `database` stores images in PostgreSQL; `filesystem` stores them on a volume |
 | `STORAGE_LOCAL_DIR` | if filesystem | `./data/uploads` | Upload directory for filesystem storage |
 | `PORT` | no | `8080` | HTTP port (set automatically by most platforms) |
 | `DB_POOL_SIZE` | no | `10` | Hikari connection pool size |
@@ -126,7 +126,7 @@ Secrets are only ever read from the environment. Nothing sensitive is committed 
 
 - [Architecture](docs/ARCHITECTURE.md): layers, data model, transactions and locking, security design
 - [API reference](docs/API.md): every endpoint with request and response shapes
-- [Deployment guide](docs/DEPLOYMENT.md): Railway (recommended), Render with Aiven, AWS EC2 with RDS
+- [Deployment guide](docs/DEPLOYMENT.md): Render with Neon (free), Railway, AWS EC2 with RDS
 
 ## Project structure
 

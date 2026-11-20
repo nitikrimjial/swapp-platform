@@ -66,6 +66,7 @@ function renderHeader(active) {
     </form>
     <nav class="header-nav" aria-label="Main">
       ${navLink('/browse.html', 'browse', 'grid', 'Browse')}
+      ${navLink('/browse.html?near=me', 'near', 'pin', 'Near me')}
       ${navLink('/giveaways.html', 'giveaways', 'gift', 'Free stuff')}
       ${u ? html`
         <a class="btn btn-primary btn-sm hide-sm" href="/item-new.html">${icon('plus')}List an item</a>

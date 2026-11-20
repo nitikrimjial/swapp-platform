@@ -1,6 +1,8 @@
 import { initPage, setTheme } from '../app.js';
 import { http } from '../api.js';
 import { html, render, icon, $, $$, avatar, formatDate, toast, withLoading, showErrors, clearErrors, fieldError, confirmDialog } from '../ui.js';
+import { locationPicker } from '../location.js';
+import { prepareImage } from '../images.js';
 
 let { user } = await initPage({ auth: 'required' });
 
@@ -23,6 +25,12 @@ const pf = profileForm.elements;
 pf.displayName.value = user.displayName;
 pf.location.value = user.location || '';
 pf.bio.value = user.bio || '';
+const homePicker = locationPicker($('#home-picker'), {
+  value: user.latitude !== null && user.latitude !== undefined
+    ? { lat: user.latitude, lng: user.longitude, name: user.location || 'Home location' } : null,
+  emptyText: 'Not set',
+  onChange: (v) => { if (v && v.name && !pf.location.value.trim()) pf.location.value = v.name; },
+});
 const bioCount = () => { $('#bio-count').textContent = `${pf.bio.value.length} / 500`; };
 pf.bio.addEventListener('input', bioCount);
 bioCount();
@@ -31,7 +39,11 @@ renderUser();
 profileForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   clearErrors(profileForm);
-  const data = { displayName: pf.displayName.value.trim(), location: pf.location.value.trim() || null, bio: pf.bio.value.trim() || null };
+  const home = homePicker.get();
+  const data = {
+    displayName: pf.displayName.value.trim(), location: pf.location.value.trim() || null, bio: pf.bio.value.trim() || null,
+    latitude: home ? home.lat : null, longitude: home ? home.lng : null,
+  };
   if (data.displayName.length < 2) { fieldError(profileForm, 'displayName', 'Name must be at least 2 characters'); return; }
   try {
     user = await withLoading(profileForm.querySelector('[type=submit]'), () => http.put('/api/users/me', data));
@@ -46,10 +58,15 @@ $('#avatar-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
-  if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) { toast('Please choose a JPEG, PNG, GIF or WebP image', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { toast('Image must be 5 MB or smaller', 'error'); return; }
+  let prepared;
+  try {
+    prepared = await prepareImage(file, 512); // avatars are small; resize in the browser
+  } catch (err) {
+    toast(err.message, 'error');
+    return;
+  }
   const fd = new FormData();
-  fd.append('file', file);
+  fd.append('file', prepared);
   try {
     user = await http.post('/api/users/me/avatar', fd);
     renderUser();

@@ -62,6 +62,17 @@ async function call(token, method, path, body) {
   return data;
 }
 
+// Approximate centres of Bengaluru neighbourhoods used by the demo members.
+const AREAS = {
+  'Koramangala': [12.9352, 77.6245], 'Indiranagar': [12.9719, 77.6412], 'Jayanagar': [12.9250, 77.5938],
+  'HSR Layout': [12.9116, 77.6389], 'Whitefield': [12.9698, 77.7500], 'Malleshwaram': [13.0031, 77.5643],
+  'BTM Layout': [12.9166, 77.6101], 'Electronic City': [12.8452, 77.6602],
+};
+const areaOf = (location) => AREAS[location.split(',')[0].trim()];
+// Deterministic jitter (up to ~600 m) so listings from one member don't sit on the exact same point.
+let jitterSeed = 7;
+const jitter = () => { jitterSeed = (jitterSeed * 9301 + 49297) % 233280; return (jitterSeed / 233280 - 0.5) * 0.011; };
+
 async function account({ name, email, location, bio, colors }) {
   let auth;
   try {
@@ -71,7 +82,8 @@ async function account({ name, email, location, bio, colors }) {
     auth = await call(null, 'POST', '/api/auth/login', { email, password: PASSWORD });
   }
   const token = auth.accessToken;
-  await call(token, 'PUT', '/api/users/me', { displayName: name, bio, location });
+  const [latitude, longitude] = areaOf(location);
+  await call(token, 'PUT', '/api/users/me', { displayName: name, bio, location, latitude, longitude });
   if (!auth.user.avatarUrl) {
     const fd = new FormData();
     fd.append('file', new Blob([photo(160, 160, colors[0], colors[1], colors[1])], { type: 'image/png' }), 'avatar.png');
@@ -83,9 +95,10 @@ async function account({ name, email, location, bio, colors }) {
 const categories = Object.fromEntries((await call(null, 'GET', '/api/categories')).map((c) => [c.slug, c.id]));
 
 async function list(user, l) {
+  const [lat, lng] = areaOf(user.location);
   const item = await call(user.token, 'POST', '/api/items', {
     title: l.title, description: l.description, categoryId: categories[l.category], condition: l.condition,
-    listingType: l.type, location: l.location || user.location,
+    listingType: l.type, location: l.location || user.location, latitude: lat + jitter(), longitude: lng + jitter(),
   });
   const fd = new FormData();
   const shots = l.photos || 1;
