@@ -1,0 +1,32 @@
+# Build output
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Local data and uploads
+data/
+*.log
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+application-local.yml
+
+# Node (browser E2E tests)
+e2e/node_modules/
+e2e/shots/
+e2e/upload-*.png
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+app:
+  jwt:
+    # No default: the application refuses to start in production without a secret.
+    secret: ${JWT_SECRET}
+  cookie:
+    secure: ${COOKIE_SECURE:true}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+logging:
+  level:
+    root: INFO
+    com.swapp: INFO
