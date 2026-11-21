@@ -29,7 +29,7 @@ public record AppProperties(Jwt jwt, Cookie cookie, Cors cors, Security security
      * user (writes); quotas stop one account, or the whole site, from exhausting the database.
      */
     public record Limits(boolean rateLimitEnabled, int registrationsPerHour, int authAttemptsPerMinute,
-                         int writesPerMinute, int maxActiveListingsPerUser, DataSize storagePerUser,
-                         DataSize storageTotal, int realtimeConnectionsPerUser) {
+                         int writesPerMinute, int emailRequestsPerHour, int exportsPerHour, int maxActiveListingsPerUser,
+                         DataSize storagePerUser, DataSize storageTotal, int realtimeConnectionsPerUser) {
     }
 }

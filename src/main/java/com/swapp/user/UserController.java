@@ -1,7 +1,12 @@
 package com.swapp.user;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,7 +29,9 @@ import com.swapp.item.dto.ItemDtos.ItemSummaryDto;
 import com.swapp.security.AuthCookies;
 import com.swapp.security.AuthUser;
 import com.swapp.security.JwtService;
+import com.swapp.user.AccountExportService.AccountExport;
 import com.swapp.user.dto.UserDtos.ChangePasswordRequest;
+import com.swapp.user.dto.UserDtos.DeleteAccountRequest;
 import com.swapp.user.dto.UserDtos.PublicProfileDto;
 import com.swapp.user.dto.UserDtos.UpdateProfileRequest;
 import com.swapp.user.dto.UserDtos.UserDto;
@@ -41,18 +48,46 @@ public class UserController {
     private final ItemService itemService;
     private final AuthCookies cookies;
     private final JwtService jwtService;
+    private final EmailVerificationService verification;
+    private final AccountDeletionService deletion;
+    private final AccountExportService export;
 
     public UserController(UserService userService, ItemService itemService, AuthCookies cookies,
-                          JwtService jwtService) {
+                          JwtService jwtService, EmailVerificationService verification,
+                          AccountDeletionService deletion, AccountExportService export) {
         this.userService = userService;
         this.itemService = itemService;
         this.cookies = cookies;
         this.jwtService = jwtService;
+        this.verification = verification;
+        this.deletion = deletion;
+        this.export = export;
     }
 
     @GetMapping("/me")
     public UserDto me(@AuthenticationPrincipal AuthUser me) {
         return userService.me(me.id());
+    }
+
+    /** Permanently deletes the account after re-checking the password; see {@link AccountDeletionService}. */
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal AuthUser me,
+                                              @Valid @RequestBody DeleteAccountRequest request,
+                                              HttpServletResponse response) {
+        deletion.deleteAccount(me.id(), request.password());
+        cookies.clear(response);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Downloads everything Swapp holds about the member as a JSON file. */
+    @GetMapping("/me/export")
+    public ResponseEntity<AccountExport> exportData(@AuthenticationPrincipal AuthUser me) {
+        String filename = "swapp-data-" + LocalDate.now(ZoneOffset.UTC) + ".json";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(filename).build().toString())
+                .cacheControl(CacheControl.noStore())
+                .body(export.export(me.id()));
     }
 
     @PutMapping("/me")
@@ -78,6 +113,12 @@ public class UserController {
         var token = userService.changePassword(me.id(), request);
         cookies.write(response, token.token(), jwtService.expiration());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/verification-email")
+    public ResponseEntity<Void> resendVerification(@AuthenticationPrincipal AuthUser me) {
+        verification.resend(me.id());
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/me/sign-out-everywhere")
@@ -106,7 +147,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public PublicProfileDto publicProfile(@PathVariable Long id) {
-        return userService.publicProfile(id);
+    public PublicProfileDto publicProfile(@PathVariable Long id, @AuthenticationPrincipal AuthUser me) {
+        return userService.publicProfile(id, me == null ? null : me.id());
     }
 }

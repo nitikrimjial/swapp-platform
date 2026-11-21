@@ -18,6 +18,7 @@ import com.swapp.common.BaseEntity;
 import com.swapp.common.PageResponse;
 import com.swapp.item.Item;
 import com.swapp.item.ItemRepository;
+import com.swapp.moderation.BlockService;
 import com.swapp.messaging.dto.MessagingDtos.ConversationDto;
 import com.swapp.messaging.dto.MessagingDtos.MessageDto;
 import com.swapp.messaging.dto.MessagingDtos.StartConversationRequest;
@@ -35,14 +36,16 @@ public class MessagingService {
     private final UserRepository users;
     private final ItemRepository items;
     private final ApplicationEventPublisher events;
+    private final BlockService blocks;
 
     public MessagingService(ConversationRepository conversations, MessageRepository messages, UserRepository users,
-                            ItemRepository items, ApplicationEventPublisher events) {
+                            ItemRepository items, ApplicationEventPublisher events, BlockService blocks) {
         this.conversations = conversations;
         this.messages = messages;
         this.users = users;
         this.items = items;
         this.events = events;
+        this.blocks = blocks;
     }
 
     /** Opens (or reuses) the conversation with another user and posts the first message. */
@@ -50,7 +53,9 @@ public class MessagingService {
         if (request.recipientId().equals(userId)) {
             throw ApiException.badRequest("You cannot message yourself");
         }
-        User recipient = users.findById(request.recipientId()).orElseThrow(() -> ApiException.notFound("User"));
+        User recipient = users.findById(request.recipientId()).filter(User::isActive)
+                .orElseThrow(() -> ApiException.notFound("User"));
+        blocks.ensureCanInteract(userId, recipient.getId());
         long one = Math.min(userId, recipient.getId());
         long two = Math.max(userId, recipient.getId());
         conversations.insertIfAbsent(one, two, BaseEntity.now());
@@ -63,6 +68,11 @@ public class MessagingService {
 
     public MessageDto send(Long userId, Long conversationId, String body, Long itemId) {
         Conversation conversation = participantConversation(conversationId, userId);
+        User other = conversation.otherParticipant(userId);
+        if (!other.isActive()) {
+            throw ApiException.conflict("This member's account is no longer active, so they can't receive messages");
+        }
+        blocks.ensureCanInteract(userId, other.getId());
         return MessageDto.from(post(conversation, userId, body, itemId));
     }
 

@@ -46,4 +46,12 @@ public interface ItemRepository extends JpaRepository<Item, Long>, JpaSpecificat
     long countByOwnerIdAndStatusNot(Long ownerId, ItemStatus status);
 
     long countByStatus(ItemStatus status);
+
+    /** Ids only, so nothing is loaded into the persistence context before the items are locked. */
+    @Query("select i.id from Item i where i.owner.id = :ownerId and i.status <> com.swapp.item.ItemStatus.REMOVED")
+    List<Long> findLiveIdsByOwnerId(@Param("ownerId") Long ownerId);
+
+    /** Every listing the member ever created, removed ones included (data export). */
+    @EntityGraph(attributePaths = {"category", "owner"})
+    List<Item> findByOwnerIdOrderByCreatedAtDesc(Long ownerId);
 }

@@ -46,6 +46,17 @@ public interface DonationRequestRepository extends JpaRepository<DonationRequest
 
     long countByStatus(DonationRequestStatus status);
 
+    long countByRequesterIdAndStatus(Long requesterId, DonationRequestStatus status);
+
+    @Query("select r.item.id from DonationRequest r where r.requester.id = :userId and r.status in :statuses")
+    List<Long> findItemIdsByRequester(@Param("userId") Long userId,
+                                      @Param("statuses") Collection<DonationRequestStatus> statuses);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from DonationRequest r where r.requester.id = :userId and r.status in :statuses order by r.id")
+    List<DonationRequest> lockByRequesterAndStatuses(@Param("userId") Long userId,
+                                                     @Param("statuses") Collection<DonationRequestStatus> statuses);
+
     interface RequestRefs {
         Long getItemId();
 

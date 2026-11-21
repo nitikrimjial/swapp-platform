@@ -23,7 +23,7 @@ class SecurityUnitTest {
         return new AppProperties(new AppProperties.Jwt(secret, ttl), new AppProperties.Cookie("swapp_token", true),
                 new AppProperties.Cors(List.of("http://localhost")), new AppProperties.Security(4, 3, Duration.ofMinutes(5)),
                 new AppProperties.Storage("database", "x", 1024, 6),
-                new AppProperties.Limits(true, 20, 15, 120, 100, DataSize.ofMegabytes(30), DataSize.ofMegabytes(400), 8));
+                new AppProperties.Limits(true, 20, 15, 120, 10, 5, 100, DataSize.ofMegabytes(30), DataSize.ofMegabytes(400), 8));
     }
 
     private static User user(long id, int version) {

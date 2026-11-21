@@ -4,6 +4,7 @@ import {
   html, render, icon, $, $$, param, typeBadge, itemStatusBadge, CONDITIONS, LISTING_TYPES,
   avatar, timeAgo, formatDate, emptyState, errorState, toast, openDialog, confirmDialog, itemMedia,
 } from '../ui.js';
+import { reportDialog } from '../safety.js';
 
 const { user } = await initPage({ auth: 'optional' });
 const root = $('#item-root');
@@ -65,12 +66,15 @@ function renderItem(item) {
           </div>
         </div></div>
         <p class="small muted" style="display:flex;gap:8px;align-items:flex-start">${icon('shield', 'icon-sm')}
-          <span>Meet in a public place, check the item before swapping, and keep conversations on Swapp.</span></p>
+          <span>Meet in a public place, check the item before swapping, and keep conversations on Swapp. <a href="/safety.html">Safety tips</a></span></p>
+        ${user && !v.owner ? html`<button type="button" class="btn btn-ghost btn-sm" id="report-item">${icon('alert', 'icon-sm')}Report this listing</button>` : ''}
       </div>
     </div>`);
 
   renderGallery(item);
   renderActions(item, type);
+  const reportBtn = $('#report-item');
+  if (reportBtn) reportBtn.addEventListener('click', () => reportDialog('ITEM', item.id).catch((err) => toast(err.message, 'error')));
   const msg = $('#message-owner');
   if (msg) msg.addEventListener('click', () => {
     if (!user) {

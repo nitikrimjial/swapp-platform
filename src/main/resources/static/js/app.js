@@ -3,6 +3,7 @@ import { http, ApiError } from './api.js';
 import { html, render, icon, avatar, toast, $, $$, raw } from './ui.js';
 
 let currentUser = null;
+let verificationRequired = false;
 const listeners = new Map();
 let socket = null;
 let socketOpen = false;
@@ -29,7 +30,9 @@ export const isRealtimeConnected = () => socketOpen;
 export async function initPage({ auth = 'optional', active = '' } = {}) {
   applyStoredTheme();
   try {
-    currentUser = (await http.get('/api/auth/session')).user;
+    const session = await http.get('/api/auth/session');
+    currentUser = session.user;
+    verificationRequired = Boolean(session.emailVerificationRequired);
   } catch (err) {
     currentUser = null;
     if (!(err instanceof ApiError) || err.status !== 401) console.warn('Could not load session', err);
@@ -43,6 +46,7 @@ export async function initPage({ auth = 'optional', active = '' } = {}) {
     return new Promise(() => {});
   }
   renderHeader(active);
+  renderVerificationBanner();
   renderFooter();
   if (currentUser) {
     refreshCounts();
@@ -85,12 +89,13 @@ function renderHeader(active) {
             <a href="/exchanges.html" role="menuitem">${icon('swap')}Exchanges</a>
             <a href="/giveaways.html?tab=incoming" role="menuitem">${icon('gift')}Donations &amp; giveaways</a>
             <a href="/messages.html" role="menuitem">${icon('message')}Messages</a>
+            ${u.role === 'ADMIN' ? html`<a href="/admin.html" role="menuitem">${icon('shield')}Moderation</a>` : ''}
             <hr>
             <a href="/settings.html" role="menuitem">${icon('settings')}Settings</a>
             <button type="button" class="danger" id="logout-btn" role="menuitem">${icon('logout')}Sign out</button>
           </div>
         </div>` : html`
-        <a class="btn btn-ghost btn-sm" href="/login.html">Sign in</a>
+        <a class="btn btn-ghost btn-sm hide-xs" href="/login.html">Sign in</a>
         <a class="btn btn-primary btn-sm" href="/register.html">Join free</a>`}
     </nav>
   </div>`);
@@ -124,6 +129,31 @@ function renderHeader(active) {
   if (q && searchInput && location.pathname === '/browse.html') searchInput.value = q;
 }
 
+/** Reminds signed-in members to confirm their email; explains what is blocked when verification is required. */
+function renderVerificationBanner() {
+  const u = currentUser;
+  if (!u || u.emailVerified || location.pathname === '/verify-email.html') return;
+  const bar = document.createElement('div');
+  bar.className = 'container';
+  bar.style.paddingTop = '16px';
+  render(bar, html`<div class="banner warning" role="status" style="margin-bottom:0;align-items:center;flex-wrap:wrap">
+    ${icon('mail')}<div style="flex:1;min-width:220px"><strong>Confirm your email address.</strong>
+    We sent a link to ${u.email}.${verificationRequired ? ' You can browse now, but you need to confirm it before posting, making offers or messaging.' : ''}</div>
+    <button type="button" class="btn btn-secondary btn-sm" id="resend-verification">Resend email</button></div>`);
+  document.querySelector('.site-header').after(bar);
+  const button = bar.querySelector('#resend-verification');
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      await http.post('/api/users/me/verification-email');
+      toast(`We sent a new link to ${u.email}. It expires in 2 days.`);
+    } catch (err) {
+      toast(err.message, 'error');
+      button.disabled = false;
+    }
+  });
+}
+
 function renderFooter() {
   const footer = document.createElement('footer');
   footer.className = 'site-footer';
@@ -137,7 +167,7 @@ function renderFooter() {
         ? html`<li><a href="/settings.html">Settings</a></li><li><a href="/profile.html">Profile</a></li>`
         : html`<li><a href="/register.html">Create account</a></li><li><a href="/login.html">Sign in</a></li>`}</ul></div>
     </div>
-    <div class="footer-bottom"><span>© ${new Date().getFullYear()} Swapp. Built for communities.</span><span>Exchange · Donate · Share</span></div>
+    <div class="footer-bottom"><span>© ${new Date().getFullYear()} Swapp. Built for communities.</span><nav aria-label="Legal"><a href="/safety.html">Safety tips</a> · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a></nav></div>
   </div>`);
   document.body.appendChild(footer);
 }

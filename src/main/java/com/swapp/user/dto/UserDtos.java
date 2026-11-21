@@ -7,6 +7,7 @@ import com.swapp.storage.StorageService;
 import com.swapp.user.Role;
 import com.swapp.user.User;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -34,7 +35,9 @@ public final class UserDtos {
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String password,
             @NotBlank(message = "Name is required") @Size(min = 2, max = 80, message = "Name must be 2-80 characters")
             String displayName,
-            @Size(max = 120, message = "Location must be at most 120 characters") String location) {
+            @Size(max = 120, message = "Location must be at most 120 characters") String location,
+            @AssertTrue(message = "Please confirm you are 18 or older and accept the Terms and Privacy Policy")
+            boolean acceptTerms) {
     }
 
     public record LoginRequest(
@@ -63,13 +66,35 @@ public final class UserDtos {
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
     }
 
+    public record ForgotPasswordRequest(
+            @NotBlank(message = "Email is required") @Email(message = "Enter a valid email address")
+            @Size(max = 255) String email) {
+    }
+
+    public record ResetPasswordRequest(
+            @NotBlank(message = "This reset link is incomplete") @Size(max = 100) String token,
+            @NotBlank(message = "New password is required")
+            @Size(min = 8, max = 72, message = "Password must be 8-72 characters")
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE)
+            @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
+    }
+
+    public record DeleteAccountRequest(
+            @NotBlank(message = "Enter your password to confirm") @Size(max = 72)
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE) String password) {
+    }
+
+    public record VerifyEmailRequest(
+            @NotBlank(message = "This verification link is incomplete") @Size(max = 100) String token) {
+    }
+
     /** Full profile, only ever returned to the user themself. */
     public record UserDto(Long id, String email, String displayName, String bio, String location, Double latitude,
-                          Double longitude, String avatarUrl, Role role, Instant createdAt) {
+                          Double longitude, String avatarUrl, Role role, boolean emailVerified, Instant createdAt) {
         public static UserDto from(User u) {
             return new UserDto(u.getId(), u.getEmail(), u.getDisplayName(), u.getBio(), u.getLocation(),
                     u.getLatitude(), u.getLongitude(), StorageService.publicUrl(u.getAvatarKey()), u.getRole(),
-                    u.getCreatedAt());
+                    u.isEmailVerified(), u.getCreatedAt());
         }
     }
 
@@ -86,7 +111,7 @@ public final class UserDtos {
 
     public record PublicProfileDto(Long id, String displayName, String bio, String location, String avatarUrl,
                                    Instant memberSince, long activeListings, long completedExchanges,
-                                   long itemsGivenAway) {
+                                   long itemsGivenAway, Boolean blockedByMe) {
     }
 
     public record AuthResponse(UserDto user, String accessToken, Instant expiresAt) {

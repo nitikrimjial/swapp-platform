@@ -14,24 +14,34 @@ Paginated responses share this envelope:
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | public | `{email, password, displayName, location?}` → 201 `{user, accessToken, expiresAt}` + cookie |
+| POST | `/auth/register` | public | `{email, password, displayName, location?, acceptTerms}` → 201 `{user, accessToken, expiresAt}` + cookie. `acceptTerms` must be `true` (the member confirms they are 18 or older and accepts the Terms and Privacy Policy); the time and terms version are recorded |
 | POST | `/auth/login` | public | `{email, password}` → `{user, accessToken, expiresAt}` + cookie. 401 on bad credentials, 429 when rate-limited |
 | POST | `/auth/logout` | public | Clears the cookie → 204 |
-| GET | `/auth/session` | public | `{user}`, or `{user: null}` for anonymous visitors |
+| GET | `/auth/session` | public | `{user, emailVerificationRequired}`; `user` is `null` for anonymous visitors |
 | GET | `/auth/me` | user | Current user |
+| POST | `/auth/forgot-password` | public | `{email}` → 202 always (the same answer whether or not the email is registered). Emails a single-use reset link valid for 1 hour |
+| POST | `/auth/reset-password` | public | `{token, newPassword}` → 204. Revokes every session, clears the cookie and emails a security alert. 400 if the link is invalid, used or expired |
+| POST | `/auth/verify-email` | public | `{token}` → 204. Works without a session, so the link opens on any device. 400 if invalid, used or expired |
 
 Password rules: 8-72 characters, at least one letter and one digit.
+
+Emailed links carry the token in the URL fragment (`/reset-password.html#token=…`), so it never reaches server logs or `Referer` headers. Only a SHA-256 hash of each token is stored, and issuing a new link invalidates older ones.
+
+When `REQUIRE_EMAIL_VERIFICATION=true`, members who have not confirmed their email get 403 on the endpoints that reach other people: `POST /items`, `POST /items/{id}/images`, `POST /offers`, `POST /donation-requests`, `POST /conversations`, `POST /conversations/{id}/messages` and `POST /reports`. Browsing, profile and settings keep working.
 
 ## Users
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, avatarUrl, role, createdAt}` |
+| GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, latitude, longitude, avatarUrl, role, emailVerified, createdAt}` |
 | PUT | `/users/me` | user | `{displayName, bio?, location?, latitude?, longitude?}`. The home location is private and used for `near me` defaults |
 | POST | `/users/me/avatar` | user | multipart `file` (JPEG/PNG/GIF/WebP, ≤ 5 MB) |
 | DELETE | `/users/me/avatar` | user | Remove avatar |
-| POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions and refreshes the cookie |
+| POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions, refreshes the cookie and emails a security alert |
 | POST | `/users/me/sign-out-everywhere` | user | Revokes all tokens → 204 |
+| POST | `/users/me/verification-email` | user | Sends a new verification link → 202 (409 if already verified) |
+| GET | `/users/me/export` | user | Downloads everything Swapp holds about the member as `swapp-data-<date>.json` (profile, listings, offers, exchanges, requests, conversations, notifications). Limited to 5 per hour |
+| DELETE | `/users/me` | user | `{password}` → 204 and clears the cookie. Erases personal data, removes listings and photos, closes open offers and requests (notifying the other members) and revokes every session. 400 on a wrong password; 409 while an exchange or hand-over is in progress |
 | GET | `/users/me/summary` | user | Badge counts `{unreadNotifications, unreadMessages, pendingIncomingOffers, pendingOutgoingOffers, activeExchanges, pendingDonationRequests, activeListings}` |
 | GET | `/users/me/items?status=&page=&size=` | user | Own listings (all statuses except removed) |
 | GET | `/users/me/offerable-items` | user | Own available exchange listings, used by the offer dialog |
@@ -43,6 +53,7 @@ Password rules: 8-72 characters, at least one letter and one digit.
 | --- | --- | --- | --- |
 | GET | `/categories` | public | `[{id, name, slug, icon}]` |
 | GET | `/stats` | public | `{members, activeListings, completedSwaps}` |
+| GET | `/site` | public | `{contactEmail, termsVersion, emailVerificationRequired}`, used by the Privacy Policy, Terms and Safety pages |
 | GET | `/files/{key}` | public | Image bytes (immutable, long-cache) |
 
 ## Items
@@ -126,6 +137,30 @@ Types: `OFFER_RECEIVED`, `OFFER_ACCEPTED`, `OFFER_REJECTED`, `OFFER_CANCELLED`, 
 | POST | `/conversations/{id}/read` | participant | Marks incoming messages read `{updated}` |
 
 Non-participants receive 404.
+
+## Safety: reports and blocks
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/reports` | verified user | `{targetType: USER\|ITEM\|MESSAGE, targetId, reason, details?}` → 201 `{id, status, createdAt}`. Reasons: `SCAM, PROHIBITED_ITEM, FAKE_LISTING, HARASSMENT, SPAM, INAPPROPRIATE, OTHER`. A snapshot of the listing, profile or message is stored as evidence. Messages can be reported only by a conversation participant (others get 404), and only messages from the other person. 409 for a duplicate open report or more than 20 open reports; 400 when reporting yourself |
+| POST | `/users/{id}/block` | user | Blocks a member → 204 (idempotent) |
+| DELETE | `/users/{id}/block` | user | Unblocks → 204 |
+| GET | `/users/me/blocks` | user | Members you have blocked `[{id, displayName, avatarUrl, location}]` |
+
+A block works both ways: neither member can message the other, make an offer on the other's listing or request the other's giveaway (403). `GET /users/{id}` includes `blockedByMe` for signed-in viewers.
+
+## Moderation (ADMIN only)
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/admin/summary` | `{openReports, suspendedMembers}` |
+| GET | `/admin/reports?status=OPEN\|RESOLVED&page=&size=` | Report queue (open: oldest first; resolved: newest first) with evidence, the reported member's open-report count and the listing's current status |
+| POST | `/admin/reports/{id}/resolve` | `{action: DISMISS\|REMOVE_ITEM\|SUSPEND_USER, note?}`. `REMOVE_ITEM` takes the listing down (409 while it's in an exchange or hand-over in progress) and resolves every open report about it. `SUSPEND_USER` needs a `note` (shown to the member) and resolves every open report about them. The reporter is notified of the outcome in general terms |
+| GET | `/admin/users/suspended` | Suspended members with reasons |
+| POST | `/admin/users/{id}/suspend` | `{reason}` → suspends directly (not moderators or yourself) |
+| POST | `/admin/users/{id}/reinstate` | Lifts a suspension → 204 |
+
+Suspending a member cancels their exchanges and hand-overs in progress, so nobody goes to meet them, and notifies the other side. It also closes their open offers and requests, hides their listings, revokes every session and emails them the reason. A suspended member's sign-in gets 403 with the reason, but only after a correct password. To make someone a moderator, run `update users set role = 'ADMIN' where email = '…';` against the database.
 
 ## WebSocket
 

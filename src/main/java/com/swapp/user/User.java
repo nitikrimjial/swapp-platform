@@ -1,5 +1,7 @@
 package com.swapp.user;
 
+import java.time.Instant;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -50,10 +52,48 @@ public class User extends BaseEntity {
     private Role role = Role.USER;
 
     /** Incremented to invalidate every previously issued token (password change, "sign out everywhere"). */
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
+    /** Set when the member deleted their account; personal fields are erased at the same time. */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    /** Set by a moderator; a suspended member cannot sign in until reinstated. */
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
+
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
+    /** When the member accepted the Terms and Privacy Policy and confirmed they are 18 or older. */
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "terms_version", length = 20)
+    private String termsVersion;
+
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
     public void revokeTokens() {
         tokenVersion++;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    public boolean isSuspended() {
+        return suspendedAt != null;
+    }
+
+    /** Can sign in, be contacted and appear to other members. */
+    public boolean isActive() {
+        return deletedAt == null && suspendedAt == null;
     }
 }

@@ -35,7 +35,8 @@ export async function prepareImage(file, maxDimension = MAX_DIMENSION) {
     throw new Error(`${file.name}: could not read this image`);
   }
   const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
-  if (scale === 1 && file.size <= 400 * 1024) return file; // already small enough
+  // Always re-encode, even small images: drawing to a canvas drops embedded metadata such as the GPS position
+  // a phone camera records, which could reveal where the member lives.
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(img.naturalWidth * scale);
   canvas.height = Math.round(img.naturalHeight * scale);
@@ -45,9 +46,8 @@ export async function prepareImage(file, maxDimension = MAX_DIMENSION) {
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', QUALITY));
   if (!blob) throw new Error(`${file.name}: could not process this image`);
-  const result = blob.size < file.size || file.size > MAX_UPLOAD_BYTES
-    ? new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
-    : file;
+  // Never fall back to the original file, even if it was smaller: it may still carry location metadata.
+  const result = new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
   if (result.size > MAX_UPLOAD_BYTES) throw new Error(`${file.name}: still too large after compression`);
   return result;
 }

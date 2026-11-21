@@ -1,6 +1,7 @@
 import { initPage, onRealtime, refreshCounts, isRealtimeConnected } from '../app.js';
 import { http } from '../api.js';
 import { html, render, icon, $, $$, param, avatar, timeAgo, formatTime, formatDate, emptyState, errorState, loadingBlock, toast } from '../ui.js';
+import { reportDialog, toggleBlock } from '../safety.js';
 
 const { user } = await initPage({ auth: 'required', active: 'messages' });
 
@@ -87,6 +88,7 @@ function renderPaneShell() {
       <button class="icon-btn back-btn" id="back" aria-label="Back to conversations">${icon('arrowLeft')}</button>
       <a class="user-chip" href="/profile.html?id=${other.id}">${avatar(other)}<div><strong>${other.displayName}</strong>
         ${other.location ? html`<span>${other.location}</span>` : ''}</div></a>
+      <button type="button" class="btn btn-ghost btn-sm" id="chat-block" style="margin-left:auto">${icon('shield', 'icon-sm')}<span class="label-text">Block</span></button>
     </div>
     <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
     <form class="chat-compose" id="compose">
@@ -107,6 +109,21 @@ function renderPaneShell() {
   });
   $('#compose').addEventListener('submit', send);
   textarea.focus();
+
+  // Whether the member is already blocked comes from their profile; deleted members have none.
+  const blockBtn = $('#chat-block');
+  let blocked = false;
+  const setLabel = () => { blockBtn.querySelector('.label-text').textContent = blocked ? 'Unblock' : 'Block'; };
+  http.get(`/api/users/${other.id}`).then((p) => { blocked = Boolean(p.blockedByMe); setLabel(); })
+    .catch(() => blockBtn.remove());
+  blockBtn.addEventListener('click', async () => {
+    try {
+      const next = await toggleBlock(other, blocked);
+      if (next !== null) { blocked = next; setLabel(); }
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  });
 }
 
 function renderMessages(scrollToEnd) {
@@ -126,7 +143,7 @@ function renderMessages(scrollToEnd) {
     parts.push(html`<div class="msg ${mine ? 'mine' : ''}">
       ${m.item ? html`<a class="item-ref" href="/item.html?id=${m.item.id}"><span class="ref-thumb">${m.item.coverImageUrl ? html`<img src="${m.item.coverImageUrl}" alt="">` : icon('package')}</span><span class="ellipsis">${m.item.title}</span></a>` : ''}
       <div class="bubble">${m.body}</div>
-      <time datetime="${m.createdAt}">${formatTime(m.createdAt)}${mine && m.read ? ' · Seen' : ''}</time>
+      <time datetime="${m.createdAt}">${formatTime(m.createdAt)}${mine && m.read ? ' · Seen' : ''}${!mine ? html` · <button type="button" class="msg-report" data-report="${m.id}">Report</button>` : ''}</time>
     </div>`);
   }
   const prevHeight = box.scrollHeight;
@@ -136,6 +153,8 @@ function renderMessages(scrollToEnd) {
   else box.scrollTop = box.scrollHeight - prevHeight + prevTop;
   const older = $('#load-older');
   if (older) older.addEventListener('click', loadOlder);
+  $$('[data-report]', box).forEach((b) => b.addEventListener('click', () =>
+    reportDialog('MESSAGE', Number(b.dataset.report)).catch((err) => toast(err.message, 'error'))));
 }
 
 async function loadOlder() {
