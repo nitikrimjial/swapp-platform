@@ -21,8 +21,8 @@ CORS_ALLOWED_ORIGINS=https://<your-public-domain>   # optional on Render (defaul
 
 ### 1. Database: Neon
 
-1. Sign up at <https://neon.tech> and create a project (PostgreSQL 17, pick the region closest to your users). The free plan does not expire. It includes 0.5 GB of storage, and compute sleeps after a few minutes idle and wakes in about a second.
-2. On the project dashboard, open **Connect**, then copy the connection details:
+1. Sign up at <https://neon.tech> and create a project (PostgreSQL 17, region **AWS Asia Pacific (Singapore)**, which matches `region: singapore` in `render.yaml`; if you pick another region, change both so the app and database stay close together). The free plan does not expire. It includes 0.5 GB of storage, and compute sleeps after a few minutes idle and wakes in about a second.
+2. On the project dashboard, open **Connect**, switch **Connection pooling off** (Flyway's migration lock needs a direct connection, and the app's own Hikari pool is enough), then copy the connection details:
    - **Host:** something like `ep-cool-name-123456.ap-southeast-1.aws.neon.tech`
    - **Database:** `neondb`
    - **Role / user:** `neondb_owner`
