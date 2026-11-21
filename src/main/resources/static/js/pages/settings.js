@@ -1,6 +1,6 @@
 import { initPage, setTheme } from '../app.js';
-import { http } from '../api.js';
-import { html, render, icon, $, $$, avatar, formatDate, toast, withLoading, showErrors, clearErrors, fieldError, confirmDialog } from '../ui.js';
+import { http, api } from '../api.js';
+import { html, render, icon, $, $$, avatar, formatDate, toast, withLoading, showErrors, clearErrors, fieldError, confirmDialog, openDialog } from '../ui.js';
 import { locationPicker } from '../location.js';
 import { prepareImage } from '../images.js';
 
@@ -8,7 +8,8 @@ let { user } = await initPage({ auth: 'required' });
 
 render('#settings-nav', [
   ['#profile', 'user', 'Profile'], ['#security', 'lock', 'Password'], ['#sessions', 'shield', 'Sessions'],
-  ['#appearance', 'sun', 'Appearance'], ['#account', 'info', 'Account'],
+  ['#appearance', 'sun', 'Appearance'], ['#account', 'info', 'Account'], ['#data', 'upload', 'Your data'],
+  ['#delete', 'trash', 'Delete account'],
 ].map(([href, ic, label]) => html`<a href="${href}">${icon(ic, 'icon-sm')}${label}</a>`));
 render('#avatar-upload-label', html`${icon('camera', 'icon-sm')}Upload photo`);
 
@@ -144,3 +145,30 @@ function renderTheme() {
 }
 $$('#theme-picker button').forEach((b) => b.addEventListener('click', () => { setTheme(b.dataset.theme); renderTheme(); }));
 renderTheme();
+
+// Account deletion: re-enter the password and type DELETE, so it can't happen by accident.
+$('#delete-account').addEventListener('click', async () => {
+  await openDialog({
+    title: 'Delete your account?',
+    submitText: 'Delete my account',
+    danger: true,
+    body: html`<div class="modal-icon danger">${icon('alert')}</div>
+      <p>Your profile, listings, photos and notifications will be erased and you'll be signed out everywhere. This can't be undone.</p>
+      <p class="small muted">Want a copy first? <a href="/api/users/me/export" download>Download your data</a>.</p>
+      <div class="field"><label for="delete-password">Your password</label>
+        <input class="input" type="password" id="delete-password" name="password" autocomplete="current-password" required maxlength="72"></div>
+      <div class="field"><label for="delete-confirm">Type DELETE to confirm</label>
+        <input class="input" id="delete-confirm" name="confirm" autocomplete="off" required maxlength="10"></div>`,
+    onSubmit: async (dialog) => {
+      const form = dialog.querySelector('form');
+      const password = form.elements.password.value;
+      let ok = true;
+      if (!password) { fieldError(form, 'password', 'Enter your password'); ok = false; }
+      if (form.elements.confirm.value.trim() !== 'DELETE') { fieldError(form, 'confirm', 'Type DELETE in capital letters'); ok = false; }
+      if (!ok) return false;
+      await api('/api/users/me', { method: 'DELETE', body: { password } });
+      location.replace('/?deleted=1');
+      return true;
+    },
+  });
+});

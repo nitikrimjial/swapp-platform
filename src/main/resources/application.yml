@@ -115,6 +115,7 @@ app:
     auth-attempts-per-minute: 15      # login + password change, per client address (bcrypt is CPU-heavy)
     writes-per-minute: 120            # POST/PUT/PATCH/DELETE per signed-in user
     email-requests-per-hour: 10       # password reset / verification emails, per client address and per account
+    exports-per-hour: 5               # personal data downloads, per user
     max-active-listings-per-user: 100
     storage-per-user: ${STORAGE_PER_USER:30MB}   # photos across all of a user's listings
     storage-total: ${STORAGE_TOTAL:400MB}        # uploads pause before the database fills (Neon free = 0.5 GB)

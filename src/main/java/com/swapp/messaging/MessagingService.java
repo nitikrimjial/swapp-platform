@@ -50,7 +50,8 @@ public class MessagingService {
         if (request.recipientId().equals(userId)) {
             throw ApiException.badRequest("You cannot message yourself");
         }
-        User recipient = users.findById(request.recipientId()).orElseThrow(() -> ApiException.notFound("User"));
+        User recipient = users.findById(request.recipientId()).filter(u -> !u.isDeleted())
+                .orElseThrow(() -> ApiException.notFound("User"));
         long one = Math.min(userId, recipient.getId());
         long two = Math.max(userId, recipient.getId());
         conversations.insertIfAbsent(one, two, BaseEntity.now());
@@ -63,6 +64,9 @@ public class MessagingService {
 
     public MessageDto send(Long userId, Long conversationId, String body, Long itemId) {
         Conversation conversation = participantConversation(conversationId, userId);
+        if (conversation.otherParticipant(userId).isDeleted()) {
+            throw ApiException.conflict("This member has deleted their account, so they can't receive messages");
+        }
         return MessageDto.from(post(conversation, userId, body, itemId));
     }
 

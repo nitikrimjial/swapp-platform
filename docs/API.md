@@ -40,6 +40,8 @@ When `REQUIRE_EMAIL_VERIFICATION=true`, members who have not confirmed their ema
 | POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions, refreshes the cookie and emails a security alert |
 | POST | `/users/me/sign-out-everywhere` | user | Revokes all tokens → 204 |
 | POST | `/users/me/verification-email` | user | Sends a new verification link → 202 (409 if already verified) |
+| GET | `/users/me/export` | user | Downloads everything Swapp holds about the member as `swapp-data-<date>.json` (profile, listings, offers, exchanges, requests, conversations, notifications). Limited to 5 per hour |
+| DELETE | `/users/me` | user | `{password}` → 204 and clears the cookie. Erases personal data, removes listings and photos, closes open offers and requests (notifying the other members) and revokes every session. 400 on a wrong password; 409 while an exchange or hand-over is in progress |
 | GET | `/users/me/summary` | user | Badge counts `{unreadNotifications, unreadMessages, pendingIncomingOffers, pendingOutgoingOffers, activeExchanges, pendingDonationRequests, activeListings}` |
 | GET | `/users/me/items?status=&page=&size=` | user | Own listings (all statuses except removed) |
 | GET | `/users/me/offerable-items` | user | Own available exchange listings, used by the offer dialog |

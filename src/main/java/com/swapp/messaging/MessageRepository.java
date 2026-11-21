@@ -13,6 +13,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
+    /** A whole conversation, oldest first (data export). */
+    @EntityGraph(attributePaths = {"sender"})
+    List<Message> findByConversationIdOrderByIdAsc(Long conversationId);
+
     @EntityGraph(attributePaths = {"sender", "item"})
     @Query("select m from Message m where m.conversation.id = :conversationId order by m.id desc")
     List<Message> findLatest(@Param("conversationId") Long conversationId, Pageable pageable);

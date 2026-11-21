@@ -61,7 +61,7 @@ class RealtimeHubTest {
                 new AppProperties.Cookie("swapp_token", false), new AppProperties.Cors(List.of()),
                 new AppProperties.Security(4, 10, Duration.ofMinutes(15)),
                 new AppProperties.Storage("database", "x", 1024, 6),
-                new AppProperties.Limits(true, 20, 15, 120, 10, 100, DataSize.ofMegabytes(30), DataSize.ofMegabytes(400),
+                new AppProperties.Limits(true, 20, 15, 120, 10, 5, 100, DataSize.ofMegabytes(30), DataSize.ofMegabytes(400),
                         maxPerUser));
     }
 }

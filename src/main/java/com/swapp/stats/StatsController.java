@@ -38,7 +38,7 @@ public class StatsController {
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<PublicStats> stats() {
-        var body = new PublicStats(users.count(), items.countByStatus(ItemStatus.AVAILABLE),
+        var body = new PublicStats(users.countByDeletedAtIsNull(), items.countByStatus(ItemStatus.AVAILABLE),
                 exchanges.countByStatus(ExchangeStatus.COMPLETED)
                         + donations.countByStatus(DonationRequestStatus.COMPLETED));
         return ResponseEntity.ok().cacheControl(CacheControl.maxAge(Duration.ofMinutes(1)).cachePublic()).body(body);
