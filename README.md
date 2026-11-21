@@ -10,7 +10,7 @@ Swapp lets neighbours list things they no longer use, offer their own items in e
 
 | Area | What works |
 | --- | --- |
-| **Accounts** | Registration, sign-in/out, BCrypt password hashing, JWT in an HttpOnly `SameSite=Strict` cookie, profile editing, avatar upload, password change (revokes other sessions), "sign out everywhere", **forgot / reset password** and **email verification** by single-use emailed links, security alert emails |
+| **Accounts** | Registration, sign-in/out, **Sign in with Google** (OpenID Connect with PKCE; matched on Google account id, safe linking to existing accounts), BCrypt password hashing, JWT in an HttpOnly `SameSite=Strict` cookie, profile editing, avatar upload, password change (revokes other sessions), "sign out everywhere", **forgot / reset password** and **email verification** by single-use emailed links, security alert emails |
 | **Your data** | Download everything as JSON, and **delete your account** yourself (personal data erased, history kept anonymised for the other side), as India's DPDP Act requires |
 | **Trust & safety** | **Report** listings, members or messages (evidence snapshot); two-way **block**; a **moderation queue** for admins to dismiss reports, take listings down or **suspend** members, which cancels their exchanges in progress |
 | **Legal** | Privacy Policy, Terms (community guidelines, prohibited items) and Safety tips pages; 18+ and terms acceptance recorded at sign-up with its version |
@@ -130,6 +130,8 @@ cd e2e && npm install && node journey.mjs http://localhost:8080 ./shots
 | `SMTP_HOST` / `SMTP_PORT` | with smtp | empty / `587` | SMTP relay, e.g. `smtp-relay.brevo.com` (STARTTLS required) |
 | `SMTP_USERNAME` / `SMTP_PASSWORD` | with smtp | empty | SMTP credentials (for Brevo: the SMTP login and an SMTP key) |
 | `REQUIRE_EMAIL_VERIFICATION` | recommended | `false` | Unconfirmed members cannot post, offer, request, message or report. Needs `MAIL_PROVIDER=smtp` |
+| `GOOGLE_CLIENT_ID` | optional | (empty) | OAuth client ID for "Sign in with Google" (see docs/DEPLOYMENT.md). Leave empty to hide the button |
+| `GOOGLE_CLIENT_SECRET` | with Google | (empty) | The matching client secret |
 | `STORAGE_PER_USER` / `STORAGE_TOTAL` | no | `30MB` / `400MB` | Photo quota per user, and the site-wide ceiling at which uploads pause |
 
 Secrets are only ever read from the environment. Nothing sensitive is committed (see `.gitignore`).

@@ -47,6 +47,18 @@ server:
   # address from the right of X-Forwarded-For, so clients cannot spoof their IP to dodge rate limits.
   forward-headers-strategy: native
   shutdown: graceful
+  servlet:
+    session:
+      # Server sessions exist only during "Sign in with Google" (state, nonce, PKCE verifier) and are invalidated as
+      # soon as Google sends the person back. Everything else is stateless (JWT cookie).
+      timeout: 10m
+      tracking-modes: cookie
+      cookie:
+        name: swapp_oauth
+        http-only: true
+        secure: ${COOKIE_SECURE:false}
+        # Lax, not Strict: the cookie must come back on Google's top-level redirect to /login/oauth2/code/google.
+        same-site: lax
   compression:
     enabled: true
   error:
@@ -92,6 +104,11 @@ app:
     require-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
     verification-ttl: P2D
     password-reset-ttl: PT1H
+  google:
+    # "Sign in with Google": an OAuth client of type "Web application" from Google Cloud Console. Leave blank to turn
+    # it off. Authorised redirect URI: <public URL>/login/oauth2/code/google
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
   jwt:
     # Leave blank in development to generate an ephemeral key. Required in production (min 32 bytes).
     secret: ${JWT_SECRET:}

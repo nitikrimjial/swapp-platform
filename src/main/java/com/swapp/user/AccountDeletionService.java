@@ -3,8 +3,8 @@ package com.swapp.user;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.time.Duration;
 import java.util.Map;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +35,9 @@ import com.swapp.notification.NotificationService;
 import com.swapp.notification.NotificationType;
 import com.swapp.offer.OfferService;
 import com.swapp.realtime.SessionsRevokedEvent;
+import com.swapp.security.AuthUser;
 import com.swapp.storage.StorageService;
+import com.swapp.user.identity.UserIdentityRepository;
 import com.swapp.user.token.UserTokenRepository;
 
 /**
@@ -58,6 +60,8 @@ import com.swapp.user.token.UserTokenRepository;
 public class AccountDeletionService {
 
     public static final String DELETED_NAME = "Deleted member";
+    /** How recently a member without a password must have signed in to delete their account. */
+    static final Duration RECENT_SIGN_IN = Duration.ofMinutes(10);
     private static final Logger log = LoggerFactory.getLogger(AccountDeletionService.class);
 
     private final UserRepository users;
@@ -75,6 +79,7 @@ public class AccountDeletionService {
     private final AccountEmails emails;
     private final ApplicationEventPublisher events;
     private final BlockService blocks;
+    private final UserIdentityRepository identities;
 
     public AccountDeletionService(UserRepository users, ItemRepository items, ItemLocker locker,
                                   ExchangeRepository exchanges, DonationRequestRepository donationRequests,
@@ -82,7 +87,7 @@ public class AccountDeletionService {
                                   NotificationRepository notificationRepository, NotificationService notifications,
                                   UserTokenRepository tokens, StorageService storage, PasswordEncoder encoder,
                                   AccountEmails emails, ApplicationEventPublisher events,
-                                  BlockService blocks) {
+                                  BlockService blocks, UserIdentityRepository identities) {
         this.users = users;
         this.items = items;
         this.locker = locker;
@@ -98,15 +103,14 @@ public class AccountDeletionService {
         this.emails = emails;
         this.events = events;
         this.blocks = blocks;
+        this.identities = identities;
     }
 
-    public void deleteAccount(Long userId, String password) {
+    public void deleteAccount(AuthUser me, String password) {
+        Long userId = me.id();
         User user = users.findById(userId).filter(u -> !u.isDeleted())
                 .orElseThrow(() -> ApiException.notFound("User"));
-        // Re-authenticate: a stolen session alone must not be able to destroy an account.
-        if (!encoder.matches(password, user.getPasswordHash())) {
-            throw ApiException.badRequest("Your password is incorrect");
-        }
+        reauthenticate(me, user, password);
 
         // 1. Lock every item this deletion touches, in id order (ItemLocker), before reading any state.
         List<Long> ownItemIds = items.findLiveIdsByOwnerId(userId);
@@ -159,18 +163,37 @@ public class AccountDeletionService {
         user.setLongitude(null);
         user.setAvatarKey(null);
         user.setEmailVerifiedAt(null);
-        user.setPasswordHash(encoder.encode(UUID.randomUUID().toString())); // unusable: nobody knows it
+        user.setPasswordHash(null);
         user.setDeletedAt(BaseEntity.now());
         user.revokeTokens();
         users.saveAndFlush(user);
         notificationRepository.deleteByRecipientId(userId);
         tokens.deleteByUserId(userId);
+        identities.deleteByUserId(userId); // the Google account can be used to join again as a new member
         blocks.removeAllFor(userId);
 
         deleteFilesAfterCommit(filesToDelete);
         events.publishEvent(new SessionsRevokedEvent(userId));
         events.publishEvent(emails.accountDeleted(originalEmail, displayName));
         log.info("User {} deleted their account ({} listings removed)", userId, ownItems.size());
+    }
+
+    /**
+     * A stolen session alone must not be able to destroy an account. Members with a password re-enter it; members who
+     * only use Google must have signed in within the last few minutes (the usual "recent login" rule).
+     */
+    private void reauthenticate(AuthUser me, User user, String password) {
+        if (user.hasPassword()) {
+            if (password == null || password.isEmpty()) {
+                throw ApiException.badRequest("Enter your password to confirm");
+            }
+            if (!encoder.matches(password, user.getPasswordHash())) {
+                throw ApiException.badRequest("Your password is incorrect");
+            }
+        } else if (!me.signedInWithin(RECENT_SIGN_IN)) {
+            throw ApiException.badRequest("For your security, sign out and sign in with Google again, then delete "
+                    + "your account within " + RECENT_SIGN_IN.toMinutes() + " minutes.");
+        }
     }
 
     /** Stored files are deleted only once the erasure has committed; a failure is logged, not fatal. */

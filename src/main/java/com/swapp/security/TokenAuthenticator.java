@@ -27,6 +27,7 @@ public class TokenAuthenticator {
         return jwtService.verify(token)
                 .flatMap(claims -> userRepository.findById(claims.userId())
                         .filter(user -> user.getTokenVersion() == claims.tokenVersion() && user.isActive())
-                        .map(user -> new AuthUser(user.getId(), user.getEmail(), user.getRole(), user.isEmailVerified())));
+                        .map(user -> new AuthUser(user.getId(), user.getEmail(), user.getRole(), user.isEmailVerified(),
+                                claims.issuedAt())));
     }
 }

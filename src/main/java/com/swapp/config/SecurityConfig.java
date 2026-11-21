@@ -3,6 +3,7 @@ package com.swapp.config;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -15,8 +16,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
@@ -32,6 +34,8 @@ import com.swapp.security.JwtAuthenticationFilter;
 import com.swapp.security.RateLimitFilter;
 import com.swapp.security.RequestRateLimiter;
 import com.swapp.security.TokenAuthenticator;
+import com.swapp.security.google.GoogleAuthorizationRequestResolver;
+import com.swapp.security.google.GoogleLoginHandlers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -70,7 +74,9 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenAuthenticator authenticator,
                                                    AuthCookies cookies, ObjectMapper mapper,
                                                    RequestRateLimiter rateLimiter, AppProperties props,
-                                                   MailSettings mail) throws Exception {
+                                                   MailSettings mail,
+                                                   ObjectProvider<ClientRegistrationRepository> googleRegistration,
+                                                   GoogleLoginHandlers googleHandlers) throws Exception {
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(authenticator, cookies,
                 mail.requireVerification());
         http
@@ -102,7 +108,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/logout",
                                 "/api/auth/session", "/api/auth/forgot-password", "/api/auth/reset-password",
-                                "/api/auth/verify-email").permitAll()
+                                "/api/auth/verify-email", "/api/auth/google/pending", "/api/auth/google/complete")
+                        .permitAll()
                         // Actions that reach other members need a verified email (when verification is required).
                         .requestMatchers(HttpMethod.POST, VERIFIED_ONLY).hasAuthority(AuthUser.VERIFIED_AUTHORITY)
                         .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
@@ -113,8 +120,21 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .anyRequest().permitAll())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // Ahead of the OAuth filters too, so the rate limiter sees "Continue with Google" requests.
+                .addFilterBefore(jwtFilter, OAuth2AuthorizationRequestRedirectFilter.class)
                 .addFilterAfter(new RateLimitFilter(rateLimiter, props.limits(), mapper), JwtAuthenticationFilter.class);
+
+        // "Sign in with Google", only when GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set. It starts at
+        // /oauth2/authorization/google and Google sends the person back to /login/oauth2/code/google.
+        ClientRegistrationRepository registrations = googleRegistration.getIfAvailable();
+        if (registrations != null) {
+            http.oauth2Login(oauth -> oauth
+                    .loginPage("/login.html") // our own page; also stops Spring generating a default one
+                    .authorizationEndpoint(a -> a.authorizationRequestResolver(
+                            new GoogleAuthorizationRequestResolver(registrations, authenticator, cookies)))
+                    .successHandler(googleHandlers)
+                    .failureHandler(googleHandlers));
+        }
         return http.build();
     }
 

@@ -48,6 +48,25 @@ public class AccountEmails {
                         + " and contact us at " + site.contactEmail() + ".");
     }
 
+    /** Security alert: a provider account (e.g. Google) can now sign in to this Swapp account. */
+    public EmailMessage signInMethodAdded(String to, String name, String provider, String providerEmail) {
+        return build(to, provider + " sign-in was added to your Swapp account", "sign-in-added", name,
+                "The " + provider + " account " + providerEmail + " can now be used to sign in to your Swapp "
+                        + "account.",
+                null, null,
+                "If this wasn't you, reset your password at " + site.link("/forgot-password.html")
+                        + ", disconnect " + provider + " in Settings and contact us at " + site.contactEmail() + ".");
+    }
+
+    public EmailMessage signInMethodRemoved(String to, String name, String provider) {
+        return build(to, provider + " sign-in was removed from your Swapp account", "sign-in-removed", name,
+                "Your " + provider + " account can no longer be used to sign in to Swapp. You can still sign in "
+                        + "with your email and password.",
+                null, null,
+                "If this wasn't you, reset your password at " + site.link("/forgot-password.html")
+                        + " and contact us at " + site.contactEmail() + ".");
+    }
+
     public EmailMessage accountDeleted(String to, String name) {
         return build(to, "Your Swapp account has been deleted", "account-deleted", name,
                 "As you asked, your Swapp account has been deleted. Your profile, listings, photos and "

@@ -29,7 +29,8 @@
       <table>
         <thead><tr><th>Data</th><th>Why we need it</th><th>Who can see it</th></tr></thead>
         <tbody>
-          <tr><td><strong>Account:</strong> email address, display name, password (stored only as a bcrypt hash, never in readable form)</td><td>To create your account, sign you in, and send account emails such as verification and password reset</td><td>Your name is public. Your email is seen only by you and, when strictly needed, by our team</td></tr>
+          <tr><td><strong>Account:</strong> email address, display name, password (stored only as a bcrypt hash, never in readable form). If you sign in with Google: your Google account ID, the email on your Google account, and the name on it as a suggestion for your display name</td><td>To create your account, sign you in, and send account emails such as verification and password reset</td><td>Your name is public. Your email is seen only by you and, when strictly needed, by our team</td></tr>
+          <tr><td><strong>Sign in with Google (optional):</strong> Google tells us your Google account ID, email address, whether Google has verified it, and your name. We never receive your Google password, contacts or anything else in your Google account</td><td>To sign you in, and to connect your Google account to an existing Swapp account with the same verified email</td><td>Only you, in Settings, and our team when strictly needed. Disconnect it any time in Settings</td></tr>
           <tr><td><strong>Profile (optional):</strong> bio, neighbourhood or city, profile photo</td><td>To help members decide who to exchange with</td><td>Public</td></tr>
           <tr><td><strong>Home location (optional):</strong> map coordinates, rounded to about 110 metres</td><td>For your "near you" feed and as the default location for new listings</td><td>Only you. Other members see an approximate distance, never coordinates</td></tr>
           <tr><td><strong>Listings:</strong> title, description, category, condition, area, photos, optional rounded coordinates</td><td>To show what you're offering or looking for</td><td>Public while the listing is live</td></tr>
@@ -49,13 +50,14 @@
       </ul>
 
       <h2>4. Cookies and local storage</h2>
-      <p>We use one essential cookie, <code>swapp_token</code>, to keep you signed in. It is HttpOnly (scripts can't read it), limited to this site, and expires after 7 days or when you sign out. We also remember your light/dark theme choice in your browser's local storage. Neither is used for tracking, so no cookie banner is needed.</p>
+      <p>We use one essential cookie, <code>swapp_token</code>, to keep you signed in. It is HttpOnly (scripts can't read it), limited to this site, and expires after 7 days or when you sign out. If you use "Continue with Google", two more essential cookies exist briefly: <code>swapp_oauth</code> secures the round trip to Google and is deleted when you come back, and <code>swapp_signup</code> holds your pending sign-up for up to 15 minutes while you accept these terms. We also remember your light/dark theme choice in your browser's local storage. Neither is used for tracking, so no cookie banner is needed.</p>
 
       <h2>5. Who we share data with</h2>
       <p>We use a small number of service providers who process data on our behalf, under their own security and privacy commitments:</p>
       <ul>
         <li><strong>Render</strong> (application hosting) and <strong>Neon</strong> (database hosting), both in the Singapore region.</li>
         <li><strong>Brevo</strong> (sending account emails such as verification and password reset).</li>
+        <li><strong>Google</strong>, only if you choose "Continue with Google": Google confirms who you are and sends us the details listed above. Google's own privacy policy applies to your Google account.</li>
         <li><strong>Google Fonts</strong>: pages load the site's typeface from Google, which receives your IP address when the font is downloaded.</li>
         <li><strong>OpenStreetMap Nominatim</strong>: only when you search for a place or use "near me", your browser sends that search, or your approximate position, directly to OpenStreetMap to find the place name.</li>
       </ul>

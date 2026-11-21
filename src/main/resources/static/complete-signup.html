@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Finish signing up · Swapp</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="/css/app.css">
+  <script src="/js/theme.js"></script>
+  <script type="module" src="/js/pages/complete-signup.js"></script>
+</head>
+<body>
+<main class="page auth-main" id="main">
+  <div class="auth-card">
+    <h1>Almost there</h1>
+    <p class="lead" id="signup-lead">Confirm a few details to create your Swapp account.</p>
+    <div id="result"></div>
+    <form id="signup-form" class="hidden" novalidate>
+      <div class="field">
+        <span class="label">Google account</span>
+        <div class="input" id="google-email" aria-live="polite" style="background:var(--surface-2);overflow-wrap:anywhere"></div>
+        <span class="hint">Your Swapp account uses this email. It's already verified by Google.</span>
+      </div>
+      <div class="field">
+        <label for="displayName">Your name</label>
+        <input class="input" id="displayName" name="displayName" autocomplete="name" required minlength="2" maxlength="80">
+        <span class="hint">Shown to other members. You can change it later.</span>
+      </div>
+      <div class="field">
+        <label for="location">Neighbourhood or city <span class="muted">(optional)</span></label>
+        <input class="input" id="location" name="location" autocomplete="address-level2" maxlength="120" placeholder="e.g. Koramangala, Bengaluru">
+      </div>
+      <div class="field">
+        <label class="checkbox" style="align-items:flex-start"><input type="checkbox" id="acceptTerms" name="acceptTerms" required style="margin-top:2px">
+          <span>I am 18 or older and I agree to the <a href="/terms.html" target="_blank" rel="noopener">Terms</a> and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg btn-block" data-loading-text="Creating account">Create account</button>
+    </form>
+    <p class="auth-switch">Not you? <a href="/register.html">Use a different account</a></p>
+  </div>
+</main>
+</body>
+</html>
