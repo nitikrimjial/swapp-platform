@@ -1,5 +1,5 @@
 # ---- build stage -------------------------------------------------------------
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:24-jdk AS build
 WORKDIR /workspace
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -8,7 +8,7 @@ COPY src/ src/
 RUN ./mvnw -B -q package -DskipTests
 
 # ---- runtime stage -----------------------------------------------------------
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:24-jre
 WORKDIR /app
 RUN groupadd --system swapp && useradd --system --gid swapp --home /app swapp \
     && mkdir -p /app/data && chown -R swapp:swapp /app
