@@ -1,9 +1,14 @@
 import { initPage } from '../app.js';
 import { http } from '../api.js';
-import { html, render, icon, $, withLoading, showErrors, clearErrors, fieldError, param, safeNext } from '../ui.js';
+import { html, render, icon, $, withLoading, showErrors, clearErrors, fieldError, param, safeNext, toast } from '../ui.js';
 
 const mode = document.body.dataset.mode; // "login" | "register"
 await initPage({ auth: 'guest' });
+
+if (mode === 'login' && param('reset')) {
+  toast('Password changed. Sign in with your new password.', 'success', { duration: 8000 });
+  history.replaceState(null, '', location.pathname);
+}
 
 const next = safeNext(param('next'), mode === 'register' ? '/home.html' : '/home.html');
 if (param('next')) {

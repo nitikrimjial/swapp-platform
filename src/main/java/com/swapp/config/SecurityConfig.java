@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,6 +27,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swapp.common.ApiError;
 import com.swapp.security.AuthCookies;
+import com.swapp.security.AuthUser;
 import com.swapp.security.JwtAuthenticationFilter;
 import com.swapp.security.RateLimitFilter;
 import com.swapp.security.RequestRateLimiter;
@@ -53,6 +55,13 @@ public class SecurityConfig {
             "form-action 'self'",
             "frame-ancestors 'none'");
 
+    /** Creating content or contacting other members. Managing what already exists stays open. */
+    private static final String[] VERIFIED_ONLY = {"/api/items", "/api/items/{id}/images", "/api/offers",
+            "/api/donation-requests", "/api/conversations", "/api/conversations/{id}/messages", "/api/reports"};
+
+    private static final String UNVERIFIED_MESSAGE = "Please confirm your email address first. Use the link we "
+            + "emailed you, or send a new one from Settings.";
+
     /** Only geolocation ("near me") is used, and only by our own pages. */
     private static final String PERMISSIONS_POLICY =
             "geolocation=(self), camera=(), microphone=(), payment=(), usb=()";
@@ -60,9 +69,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenAuthenticator authenticator,
                                                    AuthCookies cookies, ObjectMapper mapper,
-                                                   RequestRateLimiter rateLimiter, AppProperties props)
-            throws Exception {
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(authenticator, cookies);
+                                                   RequestRateLimiter rateLimiter, AppProperties props,
+                                                   MailSettings mail) throws Exception {
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(authenticator, cookies,
+                mail.requireVerification());
         http
                 // Stateless JWT in a SameSite=Strict HttpOnly cookie (or a Bearer header): the browser never sends the
                 // credential on cross-site requests, so classic CSRF tokens are unnecessary.
@@ -87,10 +97,14 @@ public class SecurityConfig {
                         .authenticationEntryPoint((req, res, ex) -> writeError(mapper, req, res, 401, "Unauthorized",
                                 "Please sign in to continue"))
                         .accessDeniedHandler((req, res, ex) -> writeError(mapper, req, res, 403, "Forbidden",
-                                "You do not have permission to perform this action")))
+                                isUnverifiedMember() ? UNVERIFIED_MESSAGE
+                                        : "You do not have permission to perform this action")))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/logout",
-                                "/api/auth/session").permitAll()
+                                "/api/auth/session", "/api/auth/forgot-password", "/api/auth/reset-password",
+                                "/api/auth/verify-email").permitAll()
+                        // Actions that reach other members need a verified email (when verification is required).
+                        .requestMatchers(HttpMethod.POST, VERIFIED_ONLY).hasAuthority(AuthUser.VERIFIED_AUTHORITY)
                         .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/items", "/api/items/{id}", "/api/categories",
                                 "/api/users/{id}", "/api/files/**", "/api/stats").permitAll()
@@ -120,6 +134,12 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
+    }
+
+    private static boolean isUnverifiedMember() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getPrincipal() instanceof AuthUser
+                && auth.getAuthorities().stream().noneMatch(a -> AuthUser.VERIFIED_AUTHORITY.equals(a.getAuthority()));
     }
 
     private static void writeError(ObjectMapper mapper, HttpServletRequest req, HttpServletResponse res, int status,

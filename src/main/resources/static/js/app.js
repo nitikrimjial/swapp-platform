@@ -3,6 +3,7 @@ import { http, ApiError } from './api.js';
 import { html, render, icon, avatar, toast, $, $$, raw } from './ui.js';
 
 let currentUser = null;
+let verificationRequired = false;
 const listeners = new Map();
 let socket = null;
 let socketOpen = false;
@@ -29,7 +30,9 @@ export const isRealtimeConnected = () => socketOpen;
 export async function initPage({ auth = 'optional', active = '' } = {}) {
   applyStoredTheme();
   try {
-    currentUser = (await http.get('/api/auth/session')).user;
+    const session = await http.get('/api/auth/session');
+    currentUser = session.user;
+    verificationRequired = Boolean(session.emailVerificationRequired);
   } catch (err) {
     currentUser = null;
     if (!(err instanceof ApiError) || err.status !== 401) console.warn('Could not load session', err);
@@ -43,6 +46,7 @@ export async function initPage({ auth = 'optional', active = '' } = {}) {
     return new Promise(() => {});
   }
   renderHeader(active);
+  renderVerificationBanner();
   renderFooter();
   if (currentUser) {
     refreshCounts();
@@ -122,6 +126,31 @@ function renderHeader(active) {
   const q = new URLSearchParams(location.search).get('q');
   const searchInput = $('.header-search input');
   if (q && searchInput && location.pathname === '/browse.html') searchInput.value = q;
+}
+
+/** Reminds signed-in members to confirm their email; explains what is blocked when verification is required. */
+function renderVerificationBanner() {
+  const u = currentUser;
+  if (!u || u.emailVerified || location.pathname === '/verify-email.html') return;
+  const bar = document.createElement('div');
+  bar.className = 'container';
+  bar.style.paddingTop = '16px';
+  render(bar, html`<div class="banner warning" role="status" style="margin-bottom:0;align-items:center;flex-wrap:wrap">
+    ${icon('mail')}<div style="flex:1;min-width:220px"><strong>Confirm your email address.</strong>
+    We sent a link to ${u.email}.${verificationRequired ? ' You can browse now, but you need to confirm it before posting, making offers or messaging.' : ''}</div>
+    <button type="button" class="btn btn-secondary btn-sm" id="resend-verification">Resend email</button></div>`);
+  document.querySelector('.site-header').after(bar);
+  const button = bar.querySelector('#resend-verification');
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try {
+      await http.post('/api/users/me/verification-email');
+      toast(`We sent a new link to ${u.email}. It expires in 2 days.`);
+    } catch (err) {
+      toast(err.message, 'error');
+      button.disabled = false;
+    }
+  });
 }
 
 function renderFooter() {

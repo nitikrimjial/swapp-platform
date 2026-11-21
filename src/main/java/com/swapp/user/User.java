@@ -1,5 +1,7 @@
 package com.swapp.user;
 
+import java.time.Instant;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -50,10 +52,17 @@ public class User extends BaseEntity {
     private Role role = Role.USER;
 
     /** Incremented to invalidate every previously issued token (password change, "sign out everywhere"). */
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
     public void revokeTokens() {
         tokenVersion++;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
     }
 }

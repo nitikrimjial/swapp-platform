@@ -41,6 +41,27 @@ CORS_ALLOWED_ORIGINS=https://<your-public-domain>   # optional on Render (defaul
 
 Free Render web services sleep after 15 minutes without traffic, and the next visit takes about a minute to wake. Data is unaffected because it lives in Neon.
 
+### 3. Email: Brevo (free, 300 emails a day)
+
+Password reset and email verification need real email delivery. Any SMTP provider works; Brevo's free plan is enough for a small community.
+
+1. Sign up at <https://www.brevo.com> (free plan).
+2. **Senders, domains and dedicated IPs → Senders:** add and verify the address emails should come from (for example `no-reply@yourdomain.com`, or your own Gmail address while testing). Authenticating a domain you own (SPF and DKIM records) greatly improves inbox placement.
+3. **SMTP and API → SMTP:** generate an SMTP key. Note the SMTP login shown on that page.
+4. In the Render service's **Environment**, set:
+   ```
+   MAIL_PROVIDER=smtp
+   MAIL_FROM=<the verified sender>
+   SMTP_HOST=smtp-relay.brevo.com
+   SMTP_USERNAME=<SMTP login>
+   SMTP_PASSWORD=<SMTP key>
+   CONTACT_EMAIL=<public contact for privacy questions>
+   ```
+5. Save. Render redeploys. Use **Forgot password** on the live site to check that the email arrives.
+6. Once it does, set `REQUIRE_EMAIL_VERIFICATION=true`, so new members must confirm their address before they can post, make offers or send messages.
+
+Until SMTP is configured, the app runs with `MAIL_PROVIDER=log`. Emails are then only written to the logs (and a warning is logged at startup), so nobody receives them. The app refuses to start with `REQUIRE_EMAIL_VERIFICATION=true` unless `MAIL_PROVIDER=smtp`, because new members could never verify.
+
 ## Option 2: Railway (always on, about $5/month)
 
 1. Create a project at <https://railway.com>, choose **Deploy from GitHub repo** and select this repository. The `Dockerfile` is detected.

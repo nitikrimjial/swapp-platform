@@ -16,8 +16,22 @@ function renderUser() {
   render('#avatar-preview', avatar(user, 'xl'));
   $('#avatar-remove').classList.toggle('hidden', !user.avatarUrl);
   render('#account-info', html`<dt>${icon('mail', 'icon-sm')}Email</dt><dd>${user.email}</dd>
+    <dt>${icon('shield', 'icon-sm')}Email status</dt><dd>${user.emailVerified
+      ? html`<span class="badge badge-success">Confirmed</span>`
+      : html`<span class="badge badge-warning">Not confirmed</span> <button type="button" class="btn btn-ghost btn-sm" id="settings-resend">Resend link</button>`}</dd>
     <dt>${icon('calendar', 'icon-sm')}Member since</dt><dd>${formatDate(user.createdAt)}</dd>
     <dt>${icon('user', 'icon-sm')}Public profile</dt><dd><a href="/profile.html?id=${user.id}">View your profile</a></dd>`);
+  const resend = $('#settings-resend');
+  if (resend) {
+    resend.addEventListener('click', async () => {
+      try {
+        await withLoading(resend, () => http.post('/api/users/me/verification-email'));
+        toast(`We sent a new link to ${user.email}.`);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+  }
 }
 
 const profileForm = $('#profile-form');

@@ -120,6 +120,13 @@ cd e2e && npm install && node journey.mjs http://localhost:8080 ./shots
 | `PORT` | no | `8080` | HTTP port (set automatically by most platforms) |
 | `DB_POOL_SIZE` | no | `10` | Hikari connection pool size |
 | `RATE_LIMIT_ENABLED` | no | `true` | Request throttling on sign-up, sign-in and writes (see ARCHITECTURE.md) |
+| `PUBLIC_URL` | no | `RENDER_EXTERNAL_URL`, else `http://localhost:8080` | Base URL used in links inside emails |
+| `CONTACT_EMAIL` | yes | `support@swapp.example` | Public contact for privacy questions and grievances (Privacy Policy, emails) |
+| `MAIL_PROVIDER` | yes (`smtp`) | `log` | `log` writes emails to the application log; `smtp` delivers them |
+| `MAIL_FROM` | with smtp | `no-reply@swapp.example` | Sender address, verified at the email provider |
+| `SMTP_HOST` / `SMTP_PORT` | with smtp | empty / `587` | SMTP relay, e.g. `smtp-relay.brevo.com` (STARTTLS required) |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | with smtp | empty | SMTP credentials (for Brevo: the SMTP login and an SMTP key) |
+| `REQUIRE_EMAIL_VERIFICATION` | recommended | `false` | Unconfirmed members cannot post, offer, request, message or report. Needs `MAIL_PROVIDER=smtp` |
 | `STORAGE_PER_USER` / `STORAGE_TOTAL` | no | `30MB` / `400MB` | Photo quota per user, and the site-wide ceiling at which uploads pause |
 
 Secrets are only ever read from the environment. Nothing sensitive is committed (see `.gitignore`).

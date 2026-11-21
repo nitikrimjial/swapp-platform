@@ -17,21 +17,29 @@ Paginated responses share this envelope:
 | POST | `/auth/register` | public | `{email, password, displayName, location?}` → 201 `{user, accessToken, expiresAt}` + cookie |
 | POST | `/auth/login` | public | `{email, password}` → `{user, accessToken, expiresAt}` + cookie. 401 on bad credentials, 429 when rate-limited |
 | POST | `/auth/logout` | public | Clears the cookie → 204 |
-| GET | `/auth/session` | public | `{user}`, or `{user: null}` for anonymous visitors |
+| GET | `/auth/session` | public | `{user, emailVerificationRequired}`; `user` is `null` for anonymous visitors |
 | GET | `/auth/me` | user | Current user |
+| POST | `/auth/forgot-password` | public | `{email}` → 202 always (the same answer whether or not the email is registered). Emails a single-use reset link valid for 1 hour |
+| POST | `/auth/reset-password` | public | `{token, newPassword}` → 204. Revokes every session, clears the cookie and emails a security alert. 400 if the link is invalid, used or expired |
+| POST | `/auth/verify-email` | public | `{token}` → 204. Works without a session, so the link opens on any device. 400 if invalid, used or expired |
 
 Password rules: 8-72 characters, at least one letter and one digit.
+
+Emailed links carry the token in the URL fragment (`/reset-password.html#token=…`), so it never reaches server logs or `Referer` headers. Only a SHA-256 hash of each token is stored, and issuing a new link invalidates older ones.
+
+When `REQUIRE_EMAIL_VERIFICATION=true`, members who have not confirmed their email get 403 on the endpoints that reach other people: `POST /items`, `POST /items/{id}/images`, `POST /offers`, `POST /donation-requests`, `POST /conversations`, `POST /conversations/{id}/messages` and `POST /reports`. Browsing, profile and settings keep working.
 
 ## Users
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, avatarUrl, role, createdAt}` |
+| GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, latitude, longitude, avatarUrl, role, emailVerified, createdAt}` |
 | PUT | `/users/me` | user | `{displayName, bio?, location?, latitude?, longitude?}`. The home location is private and used for `near me` defaults |
 | POST | `/users/me/avatar` | user | multipart `file` (JPEG/PNG/GIF/WebP, ≤ 5 MB) |
 | DELETE | `/users/me/avatar` | user | Remove avatar |
-| POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions and refreshes the cookie |
+| POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions, refreshes the cookie and emails a security alert |
 | POST | `/users/me/sign-out-everywhere` | user | Revokes all tokens → 204 |
+| POST | `/users/me/verification-email` | user | Sends a new verification link → 202 (409 if already verified) |
 | GET | `/users/me/summary` | user | Badge counts `{unreadNotifications, unreadMessages, pendingIncomingOffers, pendingOutgoingOffers, activeExchanges, pendingDonationRequests, activeListings}` |
 | GET | `/users/me/items?status=&page=&size=` | user | Own listings (all statuses except removed) |
 | GET | `/users/me/offerable-items` | user | Own available exchange listings, used by the offer dialog |

@@ -19,6 +19,7 @@ import com.swapp.exchange.ExchangeRepository;
 import com.swapp.exchange.ExchangeStatus;
 import com.swapp.item.ItemRepository;
 import com.swapp.item.ItemStatus;
+import com.swapp.mail.AccountEmails;
 import com.swapp.messaging.MessageRepository;
 import com.swapp.notification.NotificationRepository;
 import com.swapp.offer.OfferRepository;
@@ -54,12 +55,14 @@ public class UserService {
     private final ImageValidator imageValidator;
     private final StorageQuota storageQuota;
     private final ApplicationEventPublisher events;
+    private final AccountEmails emails;
 
     public UserService(UserRepository users, ItemRepository items, OfferRepository offers,
                        ExchangeRepository exchanges, DonationRequestRepository donationRequests,
                        NotificationRepository notifications, MessageRepository messages, PasswordEncoder encoder,
                        JwtService jwtService, StorageService storage, ImageValidator imageValidator,
-                       StorageQuota storageQuota, ApplicationEventPublisher events) {
+                       StorageQuota storageQuota, ApplicationEventPublisher events,
+                       AccountEmails emails) {
         this.users = users;
         this.items = items;
         this.offers = offers;
@@ -73,6 +76,7 @@ public class UserService {
         this.imageValidator = imageValidator;
         this.storageQuota = storageQuota;
         this.events = events;
+        this.emails = emails;
     }
 
     @Transactional(readOnly = true)
@@ -123,6 +127,7 @@ public class UserService {
         user.revokeTokens();
         users.saveAndFlush(user);
         events.publishEvent(new SessionsRevokedEvent(userId));
+        events.publishEvent(emails.passwordChanged(user.getEmail(), user.getDisplayName()));
         log.info("User {} changed password; other sessions revoked", userId);
         return jwtService.issue(user);
     }

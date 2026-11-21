@@ -21,3 +21,18 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      # --- Email (see docs/DEPLOYMENT.md "Email"). Until SMTP is set up, emails are only logged. ---
+      - key: CONTACT_EMAIL
+        sync: false                  # public privacy/grievance contact shown on the Privacy Policy
+      - key: MAIL_PROVIDER
+        value: log                   # change to smtp once the SMTP_* values below are filled in
+      - key: MAIL_FROM
+        sync: false                  # a sender address verified at the provider
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: REQUIRE_EMAIL_VERIFICATION
+        value: "false"               # set to "true" after SMTP works
