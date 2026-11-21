@@ -76,12 +76,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (post && path.equals("/api/auth/forgot-password")) {
             return limiter.acquire("email:" + client, limits.emailRequestsPerHour(), HOUR);
         }
-        if (post && (path.equals("/api/auth/login") || path.equals("/api/users/me/password")
-                || path.equals("/api/auth/reset-password") || path.equals("/api/auth/verify-email"))) {
+        boolean deleteAccount = "DELETE".equals(method) && path.equals("/api/users/me"); // checks a password
+        if (deleteAccount || (post && (path.equals("/api/auth/login") || path.equals("/api/users/me/password")
+                || path.equals("/api/auth/reset-password") || path.equals("/api/auth/verify-email")))) {
             return limiter.acquire("auth:" + client, limits.authAttemptsPerMinute(), MINUTE);
         }
         boolean write = !("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method));
         var auth = SecurityContextHolder.getContext().getAuthentication();
+        if ("GET".equals(method) && path.equals("/api/users/me/export") && auth != null
+                && auth.getPrincipal() instanceof AuthUser user) {
+            return limiter.acquire("export:" + user.id(), limits.exportsPerHour(), HOUR);
+        }
         if (post && path.equals("/api/users/me/verification-email") && auth != null
                 && auth.getPrincipal() instanceof AuthUser user) {
             return limiter.acquire("email-user:" + user.id(), limits.emailRequestsPerHour(), HOUR);

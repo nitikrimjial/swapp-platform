@@ -48,6 +48,16 @@ public class AccountEmails {
                         + " and contact us at " + site.contactEmail() + ".");
     }
 
+    public EmailMessage accountDeleted(String to, String name) {
+        return build(to, "Your Swapp account has been deleted", "account-deleted", name,
+                "As you asked, your Swapp account has been deleted. Your profile, listings, photos and "
+                        + "notifications have been erased, and you have been signed out everywhere. Messages you sent "
+                        + "remain visible to the people you sent them to, shown as from \"Deleted member\".",
+                null, null,
+                "If you didn't do this, contact us straight away at " + site.contactEmail() + ". You are welcome "
+                        + "to join again at any time with the same email address.");
+    }
+
     // ---------------------------------------------------------------- layout
 
     EmailMessage build(String to, String subject, String kind, String name, String intro, String buttonText,

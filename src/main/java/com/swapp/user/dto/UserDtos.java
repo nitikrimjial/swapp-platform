@@ -76,6 +76,11 @@ public final class UserDtos {
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
     }
 
+    public record DeleteAccountRequest(
+            @NotBlank(message = "Enter your password to confirm") @Size(max = 72)
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE) String password) {
+    }
+
     public record VerifyEmailRequest(
             @NotBlank(message = "This verification link is incomplete") @Size(max = 100) String token) {
     }

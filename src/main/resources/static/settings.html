@@ -73,6 +73,18 @@
         <section class="card" id="account"><div class="card-head"><h2>Account</h2></div><div class="card-body">
           <dl class="meta-list" id="account-info"></dl>
         </div></section>
+
+        <section class="card" id="data"><div class="card-head"><h2>Your data</h2></div><div class="card-body">
+          <p>Download a copy of everything Swapp holds about you: your profile, listings, offers, exchanges, requests, messages and notifications, as a JSON file.</p>
+          <a class="btn btn-secondary" id="export-data" href="/api/users/me/export" download>Download my data</a>
+          <p class="small muted" style="margin-top:12px">Read how we use your data in our <a href="/privacy.html">Privacy Policy</a>.</p>
+        </div></section>
+
+        <section class="card" id="delete"><div class="card-head"><h2>Delete account</h2></div><div class="card-body">
+          <p>Permanently delete your account. Your profile, listings, photos and notifications are erased and you are signed out everywhere. Messages you sent stay visible to the people you sent them to, shown as from "Deleted member". This can't be undone.</p>
+          <p class="small muted">If you have an exchange or hand-over in progress, finish or cancel it first.</p>
+          <button type="button" class="btn btn-danger-ghost" id="delete-account">Delete my account</button>
+        </div></section>
       </div>
     </div>
   </div>

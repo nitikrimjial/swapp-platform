@@ -55,6 +55,10 @@ public class User extends BaseEntity {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
+    /** Set when the member deleted their account; personal fields are erased at the same time. */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
@@ -64,5 +68,9 @@ public class User extends BaseEntity {
 
     public boolean isEmailVerified() {
         return emailVerifiedAt != null;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
     }
 }

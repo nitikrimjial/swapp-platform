@@ -1,6 +1,7 @@
 package com.swapp.notification;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -24,4 +25,11 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("update Notification n set n.readAt = :now, n.updatedAt = :now "
             + "where n.recipient.id = :userId and n.readAt is null")
     int markAllRead(@Param("userId") Long userId, @Param("now") Instant now);
+
+    @Modifying
+    @Query("delete from Notification n where n.recipient.id = :userId")
+    int deleteByRecipientId(@Param("userId") Long userId);
+
+    /** Newest first, at most the given number (data export). */
+    List<Notification> findByRecipientIdOrderByIdDesc(Long recipientId, Pageable pageable);
 }

@@ -142,6 +142,9 @@ public class UserService {
     @Transactional(readOnly = true)
     public PublicProfileDto publicProfile(Long userId) {
         User user = load(userId);
+        if (user.isDeleted()) {
+            throw ApiException.notFound("User");
+        }
         return new PublicProfileDto(user.getId(), user.getDisplayName(), user.getBio(), user.getLocation(),
                 StorageService.publicUrl(user.getAvatarKey()), user.getCreatedAt(),
                 items.countByOwnerIdAndStatus(userId, ItemStatus.AVAILABLE),
