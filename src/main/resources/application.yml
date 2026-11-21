@@ -25,10 +25,14 @@ spring:
   threads:
     virtual:
       enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
 
 server:
   port: ${PORT:8080}
-  forward-headers-strategy: framework
+  # "native" = Tomcat's RemoteIpValve: it trusts X-Forwarded-* only from internal proxy addresses and takes the client
+  # address from the right of X-Forwarded-For, so clients cannot spoof their IP to dodge rate limits.
+  forward-headers-strategy: native
   shutdown: graceful
   compression:
     enabled: true
@@ -74,3 +78,12 @@ app:
     local-dir: ${STORAGE_LOCAL_DIR:./data/uploads}
     max-image-bytes: 5242880
     max-images-per-item: 6
+  limits:
+    rate-limit-enabled: ${RATE_LIMIT_ENABLED:true}
+    registrations-per-hour: 20        # per client address
+    auth-attempts-per-minute: 15      # login + password change, per client address (bcrypt is CPU-heavy)
+    writes-per-minute: 120            # POST/PUT/PATCH/DELETE per signed-in user
+    max-active-listings-per-user: 100
+    storage-per-user: ${STORAGE_PER_USER:30MB}   # photos across all of a user's listings
+    storage-total: ${STORAGE_TOTAL:400MB}        # uploads pause before the database fills (Neon free = 0.5 GB)
+    realtime-connections-per-user: 8

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Boots the full application against the real MySQL test database. Each test starts from empty domain tables
+ * Boots the full application against the real PostgreSQL test database. Each test starts from empty domain tables
  * (categories and Flyway history are preserved).
  */
 @SpringBootTest

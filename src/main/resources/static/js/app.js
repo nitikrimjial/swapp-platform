@@ -8,6 +8,7 @@ let socket = null;
 let socketOpen = false;
 let reconnectDelay = 1000;
 let pollTimer = null;
+let pingTimer = null;
 
 export const getUser = () => currentUser;
 
@@ -191,13 +192,16 @@ function connectRealtime() {
     }
     emit(msg.type, msg.data);
   });
-  socket.addEventListener('close', () => {
+  socket.addEventListener('close', (event) => {
     socketOpen = false;
     startPolling();
-    setTimeout(connectRealtime, reconnectDelay);
+    // 1008 = closed on purpose by the server (session revoked, too many tabs): don't hammer it, polling covers us.
+    const delay = event.code === 1008 ? 30000 : reconnectDelay;
+    setTimeout(connectRealtime, delay);
     reconnectDelay = Math.min(reconnectDelay * 2, 30000);
   });
-  setInterval(() => { if (socketOpen) socket.send('ping'); }, 25000);
+  // One keep-alive timer for the page, not one per reconnect.
+  if (!pingTimer) pingTimer = setInterval(() => { if (socketOpen) socket.send('ping'); }, 25000);
 }
 
 function startPolling() {

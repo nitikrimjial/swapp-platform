@@ -56,8 +56,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public AuthResult login(LoginRequest request, String clientAddress) {
         String email = normalise(request.email());
-        String limiterKey = clientAddress + "|" + email;
-        rateLimiter.checkAllowed(limiterKey);
+        rateLimiter.checkAllowed(clientAddress, email);
         User user = users.findByEmailIgnoreCase(email).orElse(null);
         boolean valid;
         if (user == null) {
@@ -67,10 +66,10 @@ public class AuthService {
             valid = encoder.matches(request.password(), user.getPasswordHash());
         }
         if (!valid) {
-            rateLimiter.recordFailure(limiterKey);
+            rateLimiter.recordFailure(clientAddress, email);
             throw ApiException.unauthorized("Incorrect email or password");
         }
-        rateLimiter.reset(limiterKey);
+        rateLimiter.reset(clientAddress, email);
         return new AuthResult(user, jwtService.issue(user));
     }
 

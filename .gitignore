@@ -22,6 +22,10 @@ data/
 !.env.example
 application-local.yml
 
+# Private notes for the AI coding assistant (kept locally, not published)
+CLAUDE.md
+.claude/
+
 # Node (browser E2E tests)
 e2e/node_modules/
 e2e/shots/

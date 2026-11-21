@@ -43,5 +43,7 @@ public interface ItemRepository extends JpaRepository<Item, Long>, JpaSpecificat
 
     long countByOwnerIdAndStatus(Long ownerId, ItemStatus status);
 
+    long countByOwnerIdAndStatusNot(Long ownerId, ItemStatus status);
+
     long countByStatus(ItemStatus status);
 }

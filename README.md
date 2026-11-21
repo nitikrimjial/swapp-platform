@@ -96,7 +96,7 @@ export TEST_DB_USERNAME=postgres TEST_DB_PASSWORD=yourpassword   # defaults: pos
 ./mvnw verify
 ```
 
-78 tests cover unit logic, every controller, authentication and authorisation, item CRUD and filters, radius search and distance sorting, image validation, the full offer and exchange journey, the donation workflow, messaging privacy, database constraints and concurrent conflicting operations.
+89 tests cover unit logic, every controller, authentication and authorisation, rate limits and storage quotas, item CRUD and filters, radius search and distance sorting, image validation, the full offer and exchange journey, the donation workflow, messaging privacy, database constraints and concurrent conflicting operations.
 
 Browser journey (registers two users and walks the whole product through the UI):
 
@@ -119,6 +119,8 @@ cd e2e && npm install && node journey.mjs http://localhost:8080 ./shots
 | `STORAGE_LOCAL_DIR` | if filesystem | `./data/uploads` | Upload directory for filesystem storage |
 | `PORT` | no | `8080` | HTTP port (set automatically by most platforms) |
 | `DB_POOL_SIZE` | no | `10` | Hikari connection pool size |
+| `RATE_LIMIT_ENABLED` | no | `true` | Request throttling on sign-up, sign-in and writes (see ARCHITECTURE.md) |
+| `STORAGE_PER_USER` / `STORAGE_TOTAL` | no | `30MB` / `400MB` | Photo quota per user, and the site-wide ceiling at which uploads pause |
 
 Secrets are only ever read from the environment. Nothing sensitive is committed (see `.gitignore`).
 
@@ -133,7 +135,7 @@ Secrets are only ever read from the environment. Nothing sensitive is committed 
 ```
 src/main/java/com/swapp
 ├── config/        Security, WebSocket, typed configuration properties
-├── security/      JWT service, auth filter, cookies, login rate limiter
+├── security/      JWT service, auth filter, cookies, login and request rate limiters
 ├── common/        Base entity, error model, pagination, global exception handler
 ├── user/          Accounts, auth and profile (entity, repository, services, controllers, DTOs)
 ├── category/      Category reference data

@@ -68,12 +68,14 @@ The consistent lock order serialises conflicting operations (two accepts for the
 
 ## Security design
 
-- **Passwords:** BCrypt (strength 12 in production). Login takes the same time whether or not the email exists, and failed logins are rate-limited per client address and email.
+- **Passwords:** BCrypt (strength 12 in production). Login takes the same time whether or not the email exists. Failed logins are limited per client address + email, and per email alone with a higher ceiling, so guesses spread over many addresses are stopped too. Passwords are limited to 72 UTF-8 *bytes* (bcrypt's input limit), not just 72 characters.
+- **Abuse limits:** a `RateLimitFilter` throttles sign-up (per address per hour), sign-in and password change (per address per minute; each costs a bcrypt hash, which is expensive on a small instance) and all writes (per user per minute), answering 429 with `Retry-After`. The client address comes from Tomcat's `RemoteIpValve` (`forward-headers-strategy: native`), which trusts `X-Forwarded-For` only from internal proxy addresses, so a client can't spoof it. Each user may have 100 active listings and 30 MB of photos, and uploads pause site-wide at 400 MB, so no account can fill the free database. Each user may hold 8 WebSockets, and revoking tokens closes them. All counters are in memory, which suits a single instance; several instances would move them to Redis.
 - **Sessions:** a stateless HS256 JWT containing the user id and `token_version`. It is delivered as an `HttpOnly; SameSite=Strict; Secure` cookie, so scripts can't read it and browsers never send it cross-site. That is why Spring's CSRF tokens are disabled. API clients may send `Authorization: Bearer` instead. Incrementing `token_version` (password change, "sign out everywhere") revokes every existing token.
 - **Authorisation:** Spring Security route rules (public read endpoints, authenticated everything else, `/api/admin/**` limited to `ADMIN`) plus ownership and participant checks in every service method. Resources a user may not see return 404, so ids can't be probed.
 - **Input:** Bean Validation on every request DTO; JPA Criteria and parameterised queries only (LIKE wildcards in search input are escaped).
 - **Uploads:** size limits (5 MB per image, 6 per listing). The type is detected from file signatures, never from the client's declared type. Files are stored under random server-generated keys and served with `nosniff`.
-- **Headers:** strict Content-Security-Policy (`script-src 'self'`, no inline scripts), `X-Frame-Options: DENY`, Referrer-Policy, and HSTS when served over HTTPS.
+- **Headers:** strict Content-Security-Policy (`script-src 'self'`, `connect-src` limited to the app itself and Nominatim), `X-Frame-Options: DENY`, Referrer-Policy, `Permissions-Policy` (geolocation for our own pages only), `Cross-Origin-Opener-Policy: same-origin`, and a one-year HSTS when served over HTTPS.
+- **Supply chain:** Dependabot opens weekly update PRs (Maven, Docker, GitHub Actions, npm) and CodeQL scans the Java and JavaScript on every push.
 - **Frontend:** every dynamic value is HTML-escaped by the `html` tagged template in `ui.js`; redirects via `?next=` accept only same-origin paths.
 - **Secrets:** environment variables only. The `prod` profile has no defaults for the database or JWT secret.
 

@@ -2,6 +2,7 @@ package com.swapp.user.dto;
 
 import java.time.Instant;
 
+import com.swapp.common.MaxUtf8Bytes;
 import com.swapp.storage.StorageService;
 import com.swapp.user.Role;
 import com.swapp.user.User;
@@ -21,12 +22,15 @@ public final class UserDtos {
 
     private static final String PASSWORD_RULE = "^(?=.*[A-Za-z])(?=.*\\d).+$";
     private static final String PASSWORD_MESSAGE = "Password must contain at least one letter and one number";
+    private static final String PASSWORD_BYTES_MESSAGE =
+            "Password is too long (non-English letters and emoji count as several characters)";
 
     public record RegisterRequest(
             @NotBlank(message = "Email is required") @Email(message = "Enter a valid email address")
             @Size(max = 255) String email,
             @NotBlank(message = "Password is required")
             @Size(min = 8, max = 72, message = "Password must be 8-72 characters")
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE)
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String password,
             @NotBlank(message = "Name is required") @Size(min = 2, max = 80, message = "Name must be 2-80 characters")
             String displayName,
@@ -35,7 +39,8 @@ public final class UserDtos {
 
     public record LoginRequest(
             @NotBlank(message = "Email is required") @Size(max = 255) String email,
-            @NotBlank(message = "Password is required") @Size(max = 72) String password) {
+            @NotBlank(message = "Password is required") @Size(max = 72)
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE) String password) {
     }
 
     public record UpdateProfileRequest(
@@ -50,9 +55,11 @@ public final class UserDtos {
     }
 
     public record ChangePasswordRequest(
-            @NotBlank(message = "Current password is required") @Size(max = 72) String currentPassword,
+            @NotBlank(message = "Current password is required") @Size(max = 72)
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE) String currentPassword,
             @NotBlank(message = "New password is required")
             @Size(min = 8, max = 72, message = "Password must be 8-72 characters")
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE)
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
     }
 

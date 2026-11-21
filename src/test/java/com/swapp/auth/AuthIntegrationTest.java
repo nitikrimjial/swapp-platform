@@ -164,6 +164,28 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Security-Policy", containsString("default-src 'self'")))
                 .andExpect(header().string("X-Frame-Options", "DENY"))
-                .andExpect(header().string("X-Content-Type-Options", "nosniff"));
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Permissions-Policy", containsString("geolocation=(self)")))
+                .andExpect(header().string("Cross-Origin-Opener-Policy", "same-origin"));
+    }
+
+    @Test
+    void hstsIsSentOnHttpsRequests() throws Exception {
+        mvc.perform(get("/api/categories").secure(true))
+                .andExpect(header().string("Strict-Transport-Security", containsString("max-age=31536000")));
+    }
+
+    @Test
+    void passwordsOverBcryptByteLimitAreRejectedNotCrashed() throws Exception {
+        // 32 characters, but 92 bytes in UTF-8: passes @Size(max = 72) yet exceeds bcrypt's 72-byte input limit.
+        String hindi = "अ".repeat(30) + "a1";
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("email", "hindi@example.com", "password", hindi,
+                                "displayName", "Asha"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors.password").exists());
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(toJson(Map.of("email", "hindi@example.com", "password", hindi))))
+                .andExpect(status().isBadRequest());
     }
 }
