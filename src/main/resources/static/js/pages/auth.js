@@ -1,9 +1,14 @@
 import { initPage } from '../app.js';
 import { http } from '../api.js';
-import { html, render, icon, $, withLoading, showErrors, clearErrors, fieldError, param, safeNext } from '../ui.js';
+import { html, render, icon, $, withLoading, showErrors, clearErrors, fieldError, param, safeNext, toast } from '../ui.js';
 
 const mode = document.body.dataset.mode; // "login" | "register"
 await initPage({ auth: 'guest' });
+
+if (mode === 'login' && param('reset')) {
+  toast('Password changed. Sign in with your new password.', 'success', { duration: 8000 });
+  history.replaceState(null, '', location.pathname);
+}
 
 const next = safeNext(param('next'), mode === 'register' ? '/home.html' : '/home.html');
 if (param('next')) {
@@ -43,6 +48,10 @@ form.addEventListener('submit', async (e) => {
       fieldError(form, 'password', 'Use at least 8 characters with a letter and a number'); valid = false;
     }
     if (!data.location) delete data.location;
+    data.acceptTerms = form.elements.acceptTerms.checked;
+    if (!data.acceptTerms) {
+      fieldError(form, 'acceptTerms', 'Please confirm you are 18 or older and accept the Terms and Privacy Policy'); valid = false;
+    }
   } else if (!data.password) {
     fieldError(form, 'password', 'Password is required'); valid = false;
   }

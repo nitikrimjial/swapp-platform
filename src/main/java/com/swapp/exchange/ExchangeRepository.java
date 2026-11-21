@@ -44,6 +44,19 @@ public interface ExchangeRepository extends JpaRepository<Exchange, Long> {
 
     long countByStatus(ExchangeStatus status);
 
+    @Query("select e.id as id, e.ownerItem.id as ownerItemId, e.requesterItem.id as requesterItemId from Exchange e "
+            + "where (e.owner.id = :userId or e.requester.id = :userId) "
+            + "and e.status = com.swapp.exchange.ExchangeStatus.ACTIVE order by e.id")
+    List<ActiveExchangeRefs> findActiveRefsForUser(@Param("userId") Long userId);
+
+    interface ActiveExchangeRefs {
+        Long getId();
+
+        Long getOwnerItemId();
+
+        Long getRequesterItemId();
+    }
+
     interface ExchangeRefs {
         Long getOwnerItemId();
 

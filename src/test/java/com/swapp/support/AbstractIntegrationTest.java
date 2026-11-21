@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -29,10 +30,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(RecordingEmailSender.Config.class)
 public abstract class AbstractIntegrationTest {
 
-    private static final String[] TABLES = {"messages", "conversations", "notifications", "donation_requests",
-            "exchanges", "offers", "item_images", "stored_files", "items", "users"};
+    private static final String[] TABLES = {"reports", "user_blocks", "messages", "conversations", "notifications", "donation_requests",
+            "exchanges", "offers", "item_images", "stored_files", "items", "user_tokens", "users"};
+
+    @Autowired
+    protected RecordingEmailSender mail;
 
     @Autowired
     protected MockMvc mvc;
@@ -46,6 +51,7 @@ public abstract class AbstractIntegrationTest {
     @BeforeEach
     void cleanDatabase() {
         jdbc.execute("TRUNCATE TABLE " + String.join(", ", TABLES) + " RESTART IDENTITY CASCADE");
+        mail.clear();
     }
 
     // ---------------------------------------------------------------- helpers
@@ -56,7 +62,7 @@ public abstract class AbstractIntegrationTest {
     protected TestUser register(String name) throws Exception {
         String email = name.toLowerCase().replace(' ', '.') + "@example.com";
         MvcResult result = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", email, "password", "Passw0rd!", "displayName", name,
+                        .content(toJson(Map.of("acceptTerms", true, "email", email, "password", "Passw0rd!", "displayName", name,
                                 "location", "Springfield"))))
                 .andExpect(status().isCreated()).andReturn();
         JsonNode body = read(result);

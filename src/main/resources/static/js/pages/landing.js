@@ -1,8 +1,12 @@
 import { initPage } from '../app.js';
 import { http } from '../api.js';
-import { html, render, icon, itemCard, skeletonCards, emptyState, $ } from '../ui.js';
+import { html, render, icon, itemCard, skeletonCards, emptyState, $, param, toast } from '../ui.js';
 
 const { user } = await initPage({ auth: 'optional' });
+if (param('deleted')) {
+  toast('Your account has been deleted. Thank you for being part of Swapp.', 'success', { duration: 8000 });
+  history.replaceState(null, '', '/');
+}
 
 render('#fc1-icon', icon('bike'));
 render('#fc2-icon', icon('monitor'));

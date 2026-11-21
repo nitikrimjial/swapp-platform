@@ -1,6 +1,6 @@
 import { initPage, setTheme } from '../app.js';
-import { http } from '../api.js';
-import { html, render, icon, $, $$, avatar, formatDate, toast, withLoading, showErrors, clearErrors, fieldError, confirmDialog } from '../ui.js';
+import { http, api } from '../api.js';
+import { html, render, icon, $, $$, avatar, formatDate, toast, withLoading, showErrors, clearErrors, fieldError, confirmDialog, openDialog } from '../ui.js';
 import { locationPicker } from '../location.js';
 import { prepareImage } from '../images.js';
 
@@ -8,7 +8,9 @@ let { user } = await initPage({ auth: 'required' });
 
 render('#settings-nav', [
   ['#profile', 'user', 'Profile'], ['#security', 'lock', 'Password'], ['#sessions', 'shield', 'Sessions'],
-  ['#appearance', 'sun', 'Appearance'], ['#account', 'info', 'Account'],
+  ['#blocked', 'users', 'Blocked members'],
+  ['#appearance', 'sun', 'Appearance'], ['#account', 'info', 'Account'], ['#data', 'upload', 'Your data'],
+  ['#delete', 'trash', 'Delete account'],
 ].map(([href, ic, label]) => html`<a href="${href}">${icon(ic, 'icon-sm')}${label}</a>`));
 render('#avatar-upload-label', html`${icon('camera', 'icon-sm')}Upload photo`);
 
@@ -16,8 +18,22 @@ function renderUser() {
   render('#avatar-preview', avatar(user, 'xl'));
   $('#avatar-remove').classList.toggle('hidden', !user.avatarUrl);
   render('#account-info', html`<dt>${icon('mail', 'icon-sm')}Email</dt><dd>${user.email}</dd>
+    <dt>${icon('shield', 'icon-sm')}Email status</dt><dd>${user.emailVerified
+      ? html`<span class="badge badge-success">Confirmed</span>`
+      : html`<span class="badge badge-warning">Not confirmed</span> <button type="button" class="btn btn-ghost btn-sm" id="settings-resend">Resend link</button>`}</dd>
     <dt>${icon('calendar', 'icon-sm')}Member since</dt><dd>${formatDate(user.createdAt)}</dd>
     <dt>${icon('user', 'icon-sm')}Public profile</dt><dd><a href="/profile.html?id=${user.id}">View your profile</a></dd>`);
+  const resend = $('#settings-resend');
+  if (resend) {
+    resend.addEventListener('click', async () => {
+      try {
+        await withLoading(resend, () => http.post('/api/users/me/verification-email'));
+        toast(`We sent a new link to ${user.email}.`);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+  }
 }
 
 const profileForm = $('#profile-form');
@@ -130,3 +146,53 @@ function renderTheme() {
 }
 $$('#theme-picker button').forEach((b) => b.addEventListener('click', () => { setTheme(b.dataset.theme); renderTheme(); }));
 renderTheme();
+
+async function loadBlocked() {
+  const box = $('#blocked-list');
+  try {
+    const blocked = await http.get('/api/users/me/blocks');
+    if (!blocked.length) { render(box, html`<p class="small muted">You haven't blocked anyone.</p>`); return; }
+    render(box, html`<ul class="stack" style="list-style:none;padding:0;margin:0">${blocked.map((m) => html`<li class="row" style="justify-content:space-between">
+      <span class="row" style="gap:10px">${avatar(m)}<strong>${m.displayName}</strong></span>
+      <button type="button" class="btn btn-secondary btn-sm" data-unblock="${m.id}">Unblock</button></li>`)}</ul>`);
+    $$('[data-unblock]', box).forEach((b) => b.addEventListener('click', async () => {
+      try {
+        await withLoading(b, () => http.del(`/api/users/${b.dataset.unblock}/block`));
+        toast('Member unblocked.');
+        loadBlocked();
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }));
+  } catch (err) {
+    render(box, html`<p class="small muted">${err.message}</p>`);
+  }
+}
+loadBlocked();
+
+// Account deletion: re-enter the password and type DELETE, so it can't happen by accident.
+$('#delete-account').addEventListener('click', async () => {
+  await openDialog({
+    title: 'Delete your account?',
+    submitText: 'Delete my account',
+    danger: true,
+    body: html`<div class="modal-icon danger">${icon('alert')}</div>
+      <p>Your profile, listings, photos and notifications will be erased and you'll be signed out everywhere. This can't be undone.</p>
+      <p class="small muted">Want a copy first? <a href="/api/users/me/export" download>Download your data</a>.</p>
+      <div class="field"><label for="delete-password">Your password</label>
+        <input class="input" type="password" id="delete-password" name="password" autocomplete="current-password" required maxlength="72"></div>
+      <div class="field"><label for="delete-confirm">Type DELETE to confirm</label>
+        <input class="input" id="delete-confirm" name="confirm" autocomplete="off" required maxlength="10"></div>`,
+    onSubmit: async (dialog) => {
+      const form = dialog.querySelector('form');
+      const password = form.elements.password.value;
+      let ok = true;
+      if (!password) { fieldError(form, 'password', 'Enter your password'); ok = false; }
+      if (form.elements.confirm.value.trim() !== 'DELETE') { fieldError(form, 'confirm', 'Type DELETE in capital letters'); ok = false; }
+      if (!ok) return false;
+      await api('/api/users/me', { method: 'DELETE', body: { password } });
+      location.replace('/?deleted=1');
+      return true;
+    },
+  });
+});

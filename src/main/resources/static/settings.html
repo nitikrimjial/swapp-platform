@@ -46,7 +46,7 @@
 
         <section class="card" id="security"><div class="card-head"><h2>Password</h2></div><div class="card-body">
           <form id="password-form" novalidate>
-            <div class="field"><label for="currentPassword">Current password</label><input class="input" type="password" id="currentPassword" name="currentPassword" autocomplete="current-password" required maxlength="72"></div>
+            <div class="field"><label for="currentPassword">Current password</label><input class="input" type="password" id="currentPassword" name="currentPassword" autocomplete="current-password" required maxlength="72"><a class="small" href="/forgot-password.html" style="display:inline-block;margin-top:6px">Forgot your current password?</a></div>
             <div class="form-grid cols-2">
               <div class="field"><label for="newPassword">New password</label><input class="input" type="password" id="newPassword" name="newPassword" autocomplete="new-password" required minlength="8" maxlength="72"><span class="hint">At least 8 characters with a letter and a number.</span></div>
               <div class="field"><label for="confirmPassword">Confirm new password</label><input class="input" type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" required maxlength="72"></div>
@@ -61,6 +61,11 @@
           <button class="btn btn-danger-ghost" id="signout-all">Sign out of all devices</button>
         </div></section>
 
+        <section class="card" id="blocked"><div class="card-head"><h2>Blocked members</h2></div><div class="card-body">
+          <p class="muted">Blocked members can't message you, make offers on your listings or request your items, and you can't contact them. They aren't notified.</p>
+          <div id="blocked-list"></div>
+        </div></section>
+
         <section class="card" id="appearance"><div class="card-head"><h2>Appearance</h2></div><div class="card-body">
           <p class="muted">Choose how Swapp looks on this device.</p>
           <div class="segmented" id="theme-picker" role="radiogroup" aria-label="Theme">
@@ -72,6 +77,18 @@
 
         <section class="card" id="account"><div class="card-head"><h2>Account</h2></div><div class="card-body">
           <dl class="meta-list" id="account-info"></dl>
+        </div></section>
+
+        <section class="card" id="data"><div class="card-head"><h2>Your data</h2></div><div class="card-body">
+          <p>Download a copy of everything Swapp holds about you: your profile, listings, offers, exchanges, requests, messages and notifications, as a JSON file.</p>
+          <a class="btn btn-secondary" id="export-data" href="/api/users/me/export" download>Download my data</a>
+          <p class="small muted" style="margin-top:12px">Read how we use your data in our <a href="/privacy.html">Privacy Policy</a>.</p>
+        </div></section>
+
+        <section class="card" id="delete"><div class="card-head"><h2>Delete account</h2></div><div class="card-body">
+          <p>Permanently delete your account. Your profile, listings, photos and notifications are erased and you are signed out everywhere. Messages you sent stay visible to the people you sent them to, shown as from "Deleted member". This can't be undone.</p>
+          <p class="small muted">If you have an exchange or hand-over in progress, finish or cancel it first.</p>
+          <button type="button" class="btn btn-danger-ghost" id="delete-account">Delete my account</button>
         </div></section>
       </div>
     </div>

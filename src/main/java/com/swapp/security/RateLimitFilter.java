@@ -20,9 +20,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Throttles the endpoints an anonymous attacker can hammer (sign-up, sign-in, password change: each costs a bcrypt
- * hash, which is expensive on a small instance) per client address, and all writes per signed-in user. Runs after
- * {@link JwtAuthenticationFilter} so the user is known. Over-limit requests get 429 with {@code Retry-After}.
+ * Throttles the endpoints an anonymous attacker can hammer (sign-up, sign-in, password change and reset: each costs a
+ * bcrypt hash, which is expensive on a small instance; recovery emails, which could be used to spam an inbox) per client
+ * address, and all writes per signed-in user. Runs after {@link JwtAuthenticationFilter} so the user is known.
+ * Over-limit requests get 429 with {@code Retry-After}.
  */
 public class RateLimitFilter extends OncePerRequestFilter {
 
@@ -72,11 +73,24 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (post && path.equals("/api/auth/register")) {
             return limiter.acquire("register:" + client, limits.registrationsPerHour(), HOUR);
         }
-        if (post && (path.equals("/api/auth/login") || path.equals("/api/users/me/password"))) {
+        if (post && path.equals("/api/auth/forgot-password")) {
+            return limiter.acquire("email:" + client, limits.emailRequestsPerHour(), HOUR);
+        }
+        boolean deleteAccount = "DELETE".equals(method) && path.equals("/api/users/me"); // checks a password
+        if (deleteAccount || (post && (path.equals("/api/auth/login") || path.equals("/api/users/me/password")
+                || path.equals("/api/auth/reset-password") || path.equals("/api/auth/verify-email")))) {
             return limiter.acquire("auth:" + client, limits.authAttemptsPerMinute(), MINUTE);
         }
         boolean write = !("GET".equals(method) || "HEAD".equals(method) || "OPTIONS".equals(method));
         var auth = SecurityContextHolder.getContext().getAuthentication();
+        if ("GET".equals(method) && path.equals("/api/users/me/export") && auth != null
+                && auth.getPrincipal() instanceof AuthUser user) {
+            return limiter.acquire("export:" + user.id(), limits.exportsPerHour(), HOUR);
+        }
+        if (post && path.equals("/api/users/me/verification-email") && auth != null
+                && auth.getPrincipal() instanceof AuthUser user) {
+            return limiter.acquire("email-user:" + user.id(), limits.emailRequestsPerHour(), HOUR);
+        }
         if (write && auth != null && auth.getPrincipal() instanceof AuthUser user) {
             return limiter.acquire("write:" + user.id(), limits.writesPerMinute(), MINUTE);
         }
