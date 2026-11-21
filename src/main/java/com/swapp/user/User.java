@@ -59,6 +59,13 @@ public class User extends BaseEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    /** Set by a moderator; a suspended member cannot sign in until reinstated. */
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
+
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
@@ -72,5 +79,14 @@ public class User extends BaseEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    public boolean isSuspended() {
+        return suspendedAt != null;
+    }
+
+    /** Can sign in, be contacted and appear to other members. */
+    public boolean isActive() {
+        return deletedAt == null && suspendedAt == null;
     }
 }

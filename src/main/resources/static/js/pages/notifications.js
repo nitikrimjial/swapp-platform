@@ -9,6 +9,7 @@ const STYLE = {
   OFFER_CANCELLED: ['x', 'tint-warning'], EXCHANGE_CONFIRMED: ['check', 'tint-brand'], EXCHANGE_COMPLETED: ['sparkles', 'tint-success'],
   EXCHANGE_CANCELLED: ['xCircle', 'tint-danger'], DONATION_REQUESTED: ['hand', 'tint-donation'], DONATION_ACCEPTED: ['gift', 'tint-success'],
   DONATION_DECLINED: ['xCircle', 'tint-danger'], DONATION_CANCELLED: ['x', 'tint-warning'], DONATION_COMPLETED: ['heart', 'tint-success'],
+  LISTING_REMOVED: ['trash', 'tint-danger'], REPORT_RESOLVED: ['shield', 'tint-brand'],
 };
 
 let unreadOnly = false;

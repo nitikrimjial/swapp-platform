@@ -29,6 +29,7 @@ import com.swapp.item.ItemLocker;
 import com.swapp.item.ItemRepository;
 import com.swapp.item.ItemStatus;
 import com.swapp.mail.AccountEmails;
+import com.swapp.moderation.BlockService;
 import com.swapp.notification.NotificationRepository;
 import com.swapp.notification.NotificationService;
 import com.swapp.notification.NotificationType;
@@ -73,13 +74,15 @@ public class AccountDeletionService {
     private final PasswordEncoder encoder;
     private final AccountEmails emails;
     private final ApplicationEventPublisher events;
+    private final BlockService blocks;
 
     public AccountDeletionService(UserRepository users, ItemRepository items, ItemLocker locker,
                                   ExchangeRepository exchanges, DonationRequestRepository donationRequests,
                                   OfferService offerService, DonationService donationService,
                                   NotificationRepository notificationRepository, NotificationService notifications,
                                   UserTokenRepository tokens, StorageService storage, PasswordEncoder encoder,
-                                  AccountEmails emails, ApplicationEventPublisher events) {
+                                  AccountEmails emails, ApplicationEventPublisher events,
+                                  BlockService blocks) {
         this.users = users;
         this.items = items;
         this.locker = locker;
@@ -94,6 +97,7 @@ public class AccountDeletionService {
         this.encoder = encoder;
         this.emails = emails;
         this.events = events;
+        this.blocks = blocks;
     }
 
     public void deleteAccount(Long userId, String password) {
@@ -161,6 +165,7 @@ public class AccountDeletionService {
         users.saveAndFlush(user);
         notificationRepository.deleteByRecipientId(userId);
         tokens.deleteByUserId(userId);
+        blocks.removeAllFor(userId);
 
         deleteFilesAfterCommit(filesToDelete);
         events.publishEvent(new SessionsRevokedEvent(userId));

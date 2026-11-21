@@ -137,6 +137,30 @@ Types: `OFFER_RECEIVED`, `OFFER_ACCEPTED`, `OFFER_REJECTED`, `OFFER_CANCELLED`, 
 
 Non-participants receive 404.
 
+## Safety: reports and blocks
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/reports` | verified user | `{targetType: USER\|ITEM\|MESSAGE, targetId, reason, details?}` → 201 `{id, status, createdAt}`. Reasons: `SCAM, PROHIBITED_ITEM, FAKE_LISTING, HARASSMENT, SPAM, INAPPROPRIATE, OTHER`. A snapshot of the listing, profile or message is stored as evidence. Messages can be reported only by a conversation participant (others get 404), and only messages from the other person. 409 for a duplicate open report or more than 20 open reports; 400 when reporting yourself |
+| POST | `/users/{id}/block` | user | Blocks a member → 204 (idempotent) |
+| DELETE | `/users/{id}/block` | user | Unblocks → 204 |
+| GET | `/users/me/blocks` | user | Members you have blocked `[{id, displayName, avatarUrl, location}]` |
+
+A block works both ways: neither member can message the other, make an offer on the other's listing or request the other's giveaway (403). `GET /users/{id}` includes `blockedByMe` for signed-in viewers.
+
+## Moderation (ADMIN only)
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/admin/summary` | `{openReports, suspendedMembers}` |
+| GET | `/admin/reports?status=OPEN\|RESOLVED&page=&size=` | Report queue (open: oldest first; resolved: newest first) with evidence, the reported member's open-report count and the listing's current status |
+| POST | `/admin/reports/{id}/resolve` | `{action: DISMISS\|REMOVE_ITEM\|SUSPEND_USER, note?}`. `REMOVE_ITEM` takes the listing down (409 while it's in an exchange or hand-over in progress) and resolves every open report about it. `SUSPEND_USER` needs a `note` (shown to the member) and resolves every open report about them. The reporter is notified of the outcome in general terms |
+| GET | `/admin/users/suspended` | Suspended members with reasons |
+| POST | `/admin/users/{id}/suspend` | `{reason}` → suspends directly (not moderators or yourself) |
+| POST | `/admin/users/{id}/reinstate` | Lifts a suspension → 204 |
+
+Suspending a member cancels their exchanges and hand-overs in progress, so nobody goes to meet them, and notifies the other side. It also closes their open offers and requests, hides their listings, revokes every session and emails them the reason. A suspended member's sign-in gets 403 with the reason, but only after a correct password. To make someone a moderator, run `update users set role = 'ADMIN' where email = '…';` against the database.
+
 ## WebSocket
 
 `GET /ws` (upgrade). It is authenticated with the same cookie, and the server pushes only:

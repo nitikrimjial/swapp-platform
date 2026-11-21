@@ -21,6 +21,7 @@ import com.swapp.item.ItemRepository;
 import com.swapp.item.ItemStatus;
 import com.swapp.mail.AccountEmails;
 import com.swapp.messaging.MessageRepository;
+import com.swapp.moderation.BlockService;
 import com.swapp.notification.NotificationRepository;
 import com.swapp.offer.OfferRepository;
 import com.swapp.offer.OfferStatus;
@@ -56,13 +57,14 @@ public class UserService {
     private final StorageQuota storageQuota;
     private final ApplicationEventPublisher events;
     private final AccountEmails emails;
+    private final BlockService blocks;
 
     public UserService(UserRepository users, ItemRepository items, OfferRepository offers,
                        ExchangeRepository exchanges, DonationRequestRepository donationRequests,
                        NotificationRepository notifications, MessageRepository messages, PasswordEncoder encoder,
                        JwtService jwtService, StorageService storage, ImageValidator imageValidator,
                        StorageQuota storageQuota, ApplicationEventPublisher events,
-                       AccountEmails emails) {
+                       AccountEmails emails, BlockService blocks) {
         this.users = users;
         this.items = items;
         this.offers = offers;
@@ -77,6 +79,7 @@ public class UserService {
         this.storageQuota = storageQuota;
         this.events = events;
         this.emails = emails;
+        this.blocks = blocks;
     }
 
     @Transactional(readOnly = true)
@@ -140,16 +143,18 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public PublicProfileDto publicProfile(Long userId) {
+    /** @param viewerId the signed-in viewer, or null for visitors (blockedByMe is then null) */
+    public PublicProfileDto publicProfile(Long userId, Long viewerId) {
         User user = load(userId);
-        if (user.isDeleted()) {
+        if (!user.isActive()) {
             throw ApiException.notFound("User");
         }
         return new PublicProfileDto(user.getId(), user.getDisplayName(), user.getBio(), user.getLocation(),
                 StorageService.publicUrl(user.getAvatarKey()), user.getCreatedAt(),
                 items.countByOwnerIdAndStatus(userId, ItemStatus.AVAILABLE),
                 exchanges.countForUser(userId, ExchangeStatus.COMPLETED),
-                donationRequests.countByOwnerIdAndStatus(userId, DonationRequestStatus.COMPLETED));
+                donationRequests.countByOwnerIdAndStatus(userId, DonationRequestStatus.COMPLETED),
+                viewerId == null || viewerId.equals(userId) ? null : blocks.hasBlocked(viewerId, userId));
     }
 
     @Transactional(readOnly = true)

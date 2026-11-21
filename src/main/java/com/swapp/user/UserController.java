@@ -147,7 +147,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public PublicProfileDto publicProfile(@PathVariable Long id) {
-        return userService.publicProfile(id);
+    public PublicProfileDto publicProfile(@PathVariable Long id, @AuthenticationPrincipal AuthUser me) {
+        return userService.publicProfile(id, me == null ? null : me.id());
     }
 }

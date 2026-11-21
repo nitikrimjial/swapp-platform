@@ -89,6 +89,7 @@ function renderHeader(active) {
             <a href="/exchanges.html" role="menuitem">${icon('swap')}Exchanges</a>
             <a href="/giveaways.html?tab=incoming" role="menuitem">${icon('gift')}Donations &amp; giveaways</a>
             <a href="/messages.html" role="menuitem">${icon('message')}Messages</a>
+            ${u.role === 'ADMIN' ? html`<a href="/admin.html" role="menuitem">${icon('shield')}Moderation</a>` : ''}
             <hr>
             <a href="/settings.html" role="menuitem">${icon('settings')}Settings</a>
             <button type="button" class="danger" id="logout-btn" role="menuitem">${icon('logout')}Sign out</button>

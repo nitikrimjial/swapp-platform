@@ -33,7 +33,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Import(RecordingEmailSender.Config.class)
 public abstract class AbstractIntegrationTest {
 
-    private static final String[] TABLES = {"messages", "conversations", "notifications", "donation_requests",
+    private static final String[] TABLES = {"reports", "user_blocks", "messages", "conversations", "notifications", "donation_requests",
             "exchanges", "offers", "item_images", "stored_files", "items", "user_tokens", "users"};
 
     @Autowired
