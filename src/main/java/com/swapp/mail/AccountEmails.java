@@ -58,6 +58,32 @@ public class AccountEmails {
                         + "to join again at any time with the same email address.");
     }
 
+    public EmailMessage accountSuspended(String to, String name, String reason) {
+        return build(to, "Your Swapp account has been suspended", "account-suspended", name,
+                "Your Swapp account has been suspended by our moderators for breaking the community guidelines. "
+                        + "Reason: " + reason,
+                null, null,
+                "Your listings are hidden and you can't sign in while the suspension lasts. If you think this is "
+                        + "a mistake, reply to " + site.contactEmail() + " and we will review it.");
+    }
+
+    public EmailMessage accountReinstated(String to, String name) {
+        return build(to, "Your Swapp account has been restored", "account-reinstated", name,
+                "Good news: your Swapp account has been restored and you can sign in again. Your listings were "
+                        + "hidden during the suspension; mark them available again from My listings when you're ready.",
+                "Sign in", site.link("/login.html"),
+                "Please keep to the community guidelines in our Terms: " + site.link("/terms.html"));
+    }
+
+    public EmailMessage listingRemoved(String to, String name, String title, String note) {
+        return build(to, "Your listing was removed", "listing-removed", name,
+                "Our moderators removed your listing \"" + title + "\" because it broke the community guidelines."
+                        + (note == null ? "" : " Note from the moderator: " + note),
+                null, null,
+                "Please review the guidelines in our Terms (" + site.link("/terms.html") + "). Questions? Contact "
+                        + site.contactEmail() + ".");
+    }
+
     // ---------------------------------------------------------------- layout
 
     EmailMessage build(String to, String subject, String kind, String name, String intro, String buttonText,

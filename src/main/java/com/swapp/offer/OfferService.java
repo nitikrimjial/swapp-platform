@@ -24,6 +24,7 @@ import com.swapp.item.Item;
 import com.swapp.item.ItemLocker;
 import com.swapp.item.ItemStatus;
 import com.swapp.item.ListingType;
+import com.swapp.moderation.BlockService;
 import com.swapp.notification.NotificationService;
 import com.swapp.notification.NotificationType;
 import com.swapp.offer.dto.OfferDtos.CreateOfferRequest;
@@ -43,13 +44,15 @@ public class OfferService {
     private final ExchangeRepository exchanges;
     private final ItemLocker locker;
     private final NotificationService notifications;
+    private final BlockService blocks;
 
     public OfferService(OfferRepository offers, ExchangeRepository exchanges, ItemLocker locker,
-                        NotificationService notifications) {
+                        NotificationService notifications, BlockService blocks) {
         this.offers = offers;
         this.exchanges = exchanges;
         this.locker = locker;
         this.notifications = notifications;
+        this.blocks = blocks;
     }
 
     public OfferDto create(Long userId, CreateOfferRequest request) {
@@ -66,6 +69,7 @@ public class OfferService {
         if (requested.getListingType() != ListingType.EXCHANGE) {
             throw ApiException.badRequest("This listing does not accept exchange offers");
         }
+        blocks.ensureCanInteract(userId, requested.getOwner().getId());
         if (!requested.isAvailable()) {
             throw ApiException.conflict("This item is no longer available");
         }

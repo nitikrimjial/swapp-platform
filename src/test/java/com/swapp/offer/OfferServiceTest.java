@@ -30,6 +30,7 @@ import com.swapp.item.Item;
 import com.swapp.item.ItemLocker;
 import com.swapp.item.ItemStatus;
 import com.swapp.item.ListingType;
+import com.swapp.moderation.BlockService;
 import com.swapp.notification.NotificationService;
 import com.swapp.notification.NotificationType;
 import com.swapp.offer.dto.OfferDtos.CreateOfferRequest;
@@ -47,6 +48,8 @@ class OfferServiceTest {
     ItemLocker locker;
     @Mock
     NotificationService notifications;
+    @Mock
+    BlockService blocks;
     @InjectMocks
     OfferService service;
 

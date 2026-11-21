@@ -20,6 +20,7 @@ import com.swapp.donation.dto.DonationDtos.DonationRequestDto;
 import com.swapp.item.Item;
 import com.swapp.item.ItemLocker;
 import com.swapp.item.ItemStatus;
+import com.swapp.moderation.BlockService;
 import com.swapp.notification.NotificationService;
 import com.swapp.notification.NotificationType;
 import com.swapp.user.User;
@@ -41,13 +42,15 @@ public class DonationService {
     private final UserRepository users;
     private final ItemLocker locker;
     private final NotificationService notifications;
+    private final BlockService blocks;
 
     public DonationService(DonationRequestRepository requests, UserRepository users, ItemLocker locker,
-                           NotificationService notifications) {
+                           NotificationService notifications, BlockService blocks) {
         this.requests = requests;
         this.users = users;
         this.locker = locker;
         this.notifications = notifications;
+        this.blocks = blocks;
     }
 
     public DonationRequestDto create(Long userId, CreateDonationRequest body) {
@@ -58,6 +61,7 @@ public class DonationService {
         if (!item.getListingType().isFreeTransfer()) {
             throw ApiException.badRequest("Only donation and giveaway listings can be requested");
         }
+        blocks.ensureCanInteract(userId, item.getOwner().getId());
         if (!item.isAvailable()) {
             throw ApiException.conflict("This item is no longer available");
         }

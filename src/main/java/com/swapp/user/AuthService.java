@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.swapp.common.ApiException;
+import com.swapp.config.SiteProperties;
 import com.swapp.security.JwtService;
 import com.swapp.security.JwtService.IssuedToken;
 import com.swapp.security.LoginRateLimiter;
@@ -26,16 +27,19 @@ public class AuthService {
     private final JwtService jwtService;
     private final LoginRateLimiter rateLimiter;
     private final EmailVerificationService verification;
+    private final SiteProperties site;
     /** Used to equalise timing when the email is unknown, so response time does not reveal registered emails. */
     private final String dummyHash;
 
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwtService,
-                       LoginRateLimiter rateLimiter, EmailVerificationService verification) {
+                       LoginRateLimiter rateLimiter, EmailVerificationService verification,
+                       SiteProperties site) {
         this.users = users;
         this.encoder = encoder;
         this.jwtService = jwtService;
         this.rateLimiter = rateLimiter;
         this.verification = verification;
+        this.site = site;
         this.dummyHash = encoder.encode("swapp-timing-equaliser");
     }
 
@@ -71,6 +75,11 @@ public class AuthService {
         if (!valid) {
             rateLimiter.recordFailure(clientAddress, email);
             throw ApiException.unauthorized("Incorrect email or password");
+        }
+        if (user.isSuspended()) {
+            // Revealed only after a correct password, so suspension status cannot be probed.
+            throw ApiException.forbidden("This account has been suspended. If you think this is a mistake, contact "
+                    + site.contactEmail() + ".");
         }
         rateLimiter.reset(clientAddress, email);
         return new AuthResult(user, jwtService.issue(user));

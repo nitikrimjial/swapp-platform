@@ -2,8 +2,9 @@ import { initPage } from '../app.js';
 import { http } from '../api.js';
 import {
   html, render, icon, $, $$, param, avatar, itemCard, miniItem, statusBadge, formatDate, emptyState, errorState,
-  skeletonCards, loadingBlock, pagination,
+  skeletonCards, loadingBlock, pagination, toast,
 } from '../ui.js';
+import { reportDialog, toggleBlock } from '../safety.js';
 
 const { user } = await initPage({ auth: 'optional' });
 const requested = Number(param('id'));
@@ -38,8 +39,25 @@ try {
     <div class="row-wrap">
       ${own ? html`<a class="btn btn-secondary" href="/settings.html">${icon('edit')}Edit profile</a>`
         : html`<button class="btn btn-primary" id="message-btn">${icon('message')}Message</button>`}
+      ${user && !own ? html`<button class="btn btn-ghost btn-sm" id="block-btn"></button>
+        <button class="btn btn-ghost btn-sm" id="report-btn">${icon('alert', 'icon-sm')}Report</button>` : ''}
     </div>
   </div>`);
+  const blockBtn = $('#block-btn');
+  if (blockBtn) {
+    let blocked = Boolean(p.blockedByMe);
+    const label = () => render(blockBtn, html`${icon('shield', 'icon-sm')}${blocked ? 'Unblock' : 'Block'}`);
+    label();
+    blockBtn.addEventListener('click', async () => {
+      try {
+        const next = await toggleBlock(p, blocked);
+        if (next !== null) { blocked = next; label(); }
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+    $('#report-btn').addEventListener('click', () => reportDialog('USER', p.id).catch((err) => toast(err.message, 'error')));
+  }
   const mb = $('#message-btn');
   if (mb) mb.addEventListener('click', () => {
     if (!user) { location.href = `/login.html?next=${encodeURIComponent(location.pathname + location.search)}`; return; }

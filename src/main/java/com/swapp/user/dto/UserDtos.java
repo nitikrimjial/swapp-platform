@@ -108,7 +108,7 @@ public final class UserDtos {
 
     public record PublicProfileDto(Long id, String displayName, String bio, String location, String avatarUrl,
                                    Instant memberSince, long activeListings, long completedExchanges,
-                                   long itemsGivenAway) {
+                                   long itemsGivenAway, Boolean blockedByMe) {
     }
 
     public record AuthResponse(UserDto user, String accessToken, Instant expiresAt) {

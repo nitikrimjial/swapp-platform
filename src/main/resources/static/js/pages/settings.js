@@ -8,6 +8,7 @@ let { user } = await initPage({ auth: 'required' });
 
 render('#settings-nav', [
   ['#profile', 'user', 'Profile'], ['#security', 'lock', 'Password'], ['#sessions', 'shield', 'Sessions'],
+  ['#blocked', 'users', 'Blocked members'],
   ['#appearance', 'sun', 'Appearance'], ['#account', 'info', 'Account'], ['#data', 'upload', 'Your data'],
   ['#delete', 'trash', 'Delete account'],
 ].map(([href, ic, label]) => html`<a href="${href}">${icon(ic, 'icon-sm')}${label}</a>`));
@@ -145,6 +146,29 @@ function renderTheme() {
 }
 $$('#theme-picker button').forEach((b) => b.addEventListener('click', () => { setTheme(b.dataset.theme); renderTheme(); }));
 renderTheme();
+
+async function loadBlocked() {
+  const box = $('#blocked-list');
+  try {
+    const blocked = await http.get('/api/users/me/blocks');
+    if (!blocked.length) { render(box, html`<p class="small muted">You haven't blocked anyone.</p>`); return; }
+    render(box, html`<ul class="stack" style="list-style:none;padding:0;margin:0">${blocked.map((m) => html`<li class="row" style="justify-content:space-between">
+      <span class="row" style="gap:10px">${avatar(m)}<strong>${m.displayName}</strong></span>
+      <button type="button" class="btn btn-secondary btn-sm" data-unblock="${m.id}">Unblock</button></li>`)}</ul>`);
+    $$('[data-unblock]', box).forEach((b) => b.addEventListener('click', async () => {
+      try {
+        await withLoading(b, () => http.del(`/api/users/${b.dataset.unblock}/block`));
+        toast('Member unblocked.');
+        loadBlocked();
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    }));
+  } catch (err) {
+    render(box, html`<p class="small muted">${err.message}</p>`);
+  }
+}
+loadBlocked();
 
 // Account deletion: re-enter the password and type DELETE, so it can't happen by accident.
 $('#delete-account').addEventListener('click', async () => {
