@@ -63,13 +63,30 @@ public final class UserDtos {
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
     }
 
+    public record ForgotPasswordRequest(
+            @NotBlank(message = "Email is required") @Email(message = "Enter a valid email address")
+            @Size(max = 255) String email) {
+    }
+
+    public record ResetPasswordRequest(
+            @NotBlank(message = "This reset link is incomplete") @Size(max = 100) String token,
+            @NotBlank(message = "New password is required")
+            @Size(min = 8, max = 72, message = "Password must be 8-72 characters")
+            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE)
+            @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
+    }
+
+    public record VerifyEmailRequest(
+            @NotBlank(message = "This verification link is incomplete") @Size(max = 100) String token) {
+    }
+
     /** Full profile, only ever returned to the user themself. */
     public record UserDto(Long id, String email, String displayName, String bio, String location, Double latitude,
-                          Double longitude, String avatarUrl, Role role, Instant createdAt) {
+                          Double longitude, String avatarUrl, Role role, boolean emailVerified, Instant createdAt) {
         public static UserDto from(User u) {
             return new UserDto(u.getId(), u.getEmail(), u.getDisplayName(), u.getBio(), u.getLocation(),
                     u.getLatitude(), u.getLongitude(), StorageService.publicUrl(u.getAvatarKey()), u.getRole(),
-                    u.getCreatedAt());
+                    u.isEmailVerified(), u.getCreatedAt());
         }
     }
 

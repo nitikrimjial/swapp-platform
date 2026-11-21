@@ -25,15 +25,17 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
     private final LoginRateLimiter rateLimiter;
+    private final EmailVerificationService verification;
     /** Used to equalise timing when the email is unknown, so response time does not reveal registered emails. */
     private final String dummyHash;
 
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwtService,
-                       LoginRateLimiter rateLimiter) {
+                       LoginRateLimiter rateLimiter, EmailVerificationService verification) {
         this.users = users;
         this.encoder = encoder;
         this.jwtService = jwtService;
         this.rateLimiter = rateLimiter;
+        this.verification = verification;
         this.dummyHash = encoder.encode("swapp-timing-equaliser");
     }
 
@@ -50,6 +52,7 @@ public class AuthService {
         user.setLocation(StringUtils.hasText(request.location()) ? request.location().trim() : null);
         users.saveAndFlush(user);
         log.info("New user registered: id={}", user.getId());
+        verification.sendVerification(user);
         return new AuthResult(user, jwtService.issue(user));
     }
 

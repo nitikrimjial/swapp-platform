@@ -18,6 +18,19 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  mail:
+    # SMTP relay, used only when MAIL_PROVIDER=smtp (e.g. Brevo: smtp-relay.brevo.com, port 587).
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
   servlet:
     multipart:
       max-file-size: 5MB
@@ -52,6 +65,10 @@ management:
       probes:
         enabled: true
       show-details: never
+  health:
+    # An email outage must not mark the app unhealthy (Render would restart it for no benefit).
+    mail:
+      enabled: false
 
 logging:
   level:
@@ -59,6 +76,20 @@ logging:
     org.hibernate.engine.jdbc.spi.SqlExceptionHelper: ERROR
 
 app:
+  site:
+    # Base URL for links in emails. On Render, RENDER_EXTERNAL_URL is set automatically.
+    public-url: ${PUBLIC_URL:${RENDER_EXTERNAL_URL:http://localhost:8080}}
+    # Shown on the Privacy Policy and in emails for privacy questions and grievances (DPDP Act 2023).
+    contact-email: ${CONTACT_EMAIL:support@swapp.example}
+  mail:
+    # "log" writes emails to the application log (development); "smtp" delivers them.
+    provider: ${MAIL_PROVIDER:log}
+    from: ${MAIL_FROM:no-reply@swapp.example}
+    from-name: Swapp
+    # Turn on once SMTP works: unverified members then cannot post, offer, request, message or report.
+    require-verification: ${REQUIRE_EMAIL_VERIFICATION:false}
+    verification-ttl: P2D
+    password-reset-ttl: PT1H
   jwt:
     # Leave blank in development to generate an ephemeral key. Required in production (min 32 bytes).
     secret: ${JWT_SECRET:}
@@ -83,6 +114,7 @@ app:
     registrations-per-hour: 20        # per client address
     auth-attempts-per-minute: 15      # login + password change, per client address (bcrypt is CPU-heavy)
     writes-per-minute: 120            # POST/PUT/PATCH/DELETE per signed-in user
+    email-requests-per-hour: 10       # password reset / verification emails, per client address and per account
     max-active-listings-per-user: 100
     storage-per-user: ${STORAGE_PER_USER:30MB}   # photos across all of a user's listings
     storage-total: ${STORAGE_TOTAL:400MB}        # uploads pause before the database fills (Neon free = 0.5 GB)

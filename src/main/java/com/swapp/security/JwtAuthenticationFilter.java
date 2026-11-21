@@ -1,10 +1,12 @@
 package com.swapp.security;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -20,10 +22,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenAuthenticator authenticator;
     private final AuthCookies cookies;
+    private final boolean requireVerification;
 
-    public JwtAuthenticationFilter(TokenAuthenticator authenticator, AuthCookies cookies) {
+    /**
+     * @param requireVerification when false every member receives {@link AuthUser#VERIFIED_AUTHORITY}, so the
+     *                            verification rule in SecurityConfig is a no-op
+     */
+    public JwtAuthenticationFilter(TokenAuthenticator authenticator, AuthCookies cookies,
+                                   boolean requireVerification) {
         this.authenticator = authenticator;
         this.cookies = cookies;
+        this.requireVerification = requireVerification;
     }
 
     @Override
@@ -38,13 +47,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = resolveToken(request);
         if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             authenticator.authenticate(token).ifPresent(user -> {
-                var auth = new UsernamePasswordAuthenticationToken(user, null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name())));
+                var auth = new UsernamePasswordAuthenticationToken(user, null, authorities(user));
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             });
         }
         chain.doFilter(request, response);
+    }
+
+    private List<GrantedAuthority> authorities(AuthUser user) {
+        List<GrantedAuthority> authorities = new ArrayList<>(2);
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.role().name()));
+        if (user.emailVerified() || !requireVerification) {
+            authorities.add(new SimpleGrantedAuthority(AuthUser.VERIFIED_AUTHORITY));
+        }
+        return authorities;
     }
 
     private String resolveToken(HttpServletRequest request) {

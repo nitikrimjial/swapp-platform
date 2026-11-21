@@ -41,13 +41,15 @@ public class UserController {
     private final ItemService itemService;
     private final AuthCookies cookies;
     private final JwtService jwtService;
+    private final EmailVerificationService verification;
 
     public UserController(UserService userService, ItemService itemService, AuthCookies cookies,
-                          JwtService jwtService) {
+                          JwtService jwtService, EmailVerificationService verification) {
         this.userService = userService;
         this.itemService = itemService;
         this.cookies = cookies;
         this.jwtService = jwtService;
+        this.verification = verification;
     }
 
     @GetMapping("/me")
@@ -78,6 +80,12 @@ public class UserController {
         var token = userService.changePassword(me.id(), request);
         cookies.write(response, token.token(), jwtService.expiration());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/me/verification-email")
+    public ResponseEntity<Void> resendVerification(@AuthenticationPrincipal AuthUser me) {
+        verification.resend(me.id());
+        return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/me/sign-out-everywhere")

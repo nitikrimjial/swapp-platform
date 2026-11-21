@@ -29,6 +29,7 @@ import com.swapp.support.AbstractIntegrationTest;
         "app.limits.registrations-per-hour=3",
         "app.limits.auth-attempts-per-minute=3",
         "app.limits.writes-per-minute=5",
+        "app.limits.email-requests-per-hour=2",
         "app.limits.max-active-listings-per-user=2",
         "app.limits.storage-per-user=1KB",
         "app.limits.storage-total=1500B"})
@@ -44,6 +45,25 @@ class AbuseLimitsIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void resetCounters() {
         ((Map<?, ?>) ReflectionTestUtils.getField(limiter, "windows")).clear();
+    }
+
+    @Test
+    void recoveryEmailsAreLimitedPerClientAddressAndPerAccount() throws Exception {
+        TestUser asha = register("Asha Rao");
+        String body = toJson(Map.of("email", asha.email()));
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(post("/api/auth/forgot-password").contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isAccepted());
+        }
+        mvc.perform(post("/api/auth/forgot-password").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isTooManyRequests());
+
+        // From another address the response is still 202, but the per-account cap means no third email is sent.
+        mvc.perform(post("/api/auth/forgot-password").with(r -> { r.setRemoteAddr("203.0.113.7"); return r; })
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isAccepted());
+        mail.await(asha.email(), "password-reset");
+        Thread.sleep(400);
+        org.assertj.core.api.Assertions.assertThat(mail.count(asha.email(), "password-reset")).isEqualTo(2);
     }
 
     @Test
