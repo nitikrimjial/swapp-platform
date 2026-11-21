@@ -62,7 +62,7 @@ public abstract class AbstractIntegrationTest {
     protected TestUser register(String name) throws Exception {
         String email = name.toLowerCase().replace(' ', '.') + "@example.com";
         MvcResult result = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", email, "password", "Passw0rd!", "displayName", name,
+                        .content(toJson(Map.of("acceptTerms", true, "email", email, "password", "Passw0rd!", "displayName", name,
                                 "location", "Springfield"))))
                 .andExpect(status().isCreated()).andReturn();
         JsonNode body = read(result);

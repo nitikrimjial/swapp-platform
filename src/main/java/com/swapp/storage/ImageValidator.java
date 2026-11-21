@@ -39,6 +39,9 @@ public class ImageValidator {
         if (type == null) {
             throw ApiException.badRequest("Only JPEG, PNG, GIF and WebP images are supported");
         }
+        if ("image/jpeg".equals(type)) {
+            data = JpegMetadataStripper.strip(data); // drop EXIF (may contain GPS) uploaded by API clients
+        }
         return new ValidatedImage(data, type);
     }
 

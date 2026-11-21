@@ -7,6 +7,7 @@ import com.swapp.storage.StorageService;
 import com.swapp.user.Role;
 import com.swapp.user.User;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -34,7 +35,9 @@ public final class UserDtos {
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String password,
             @NotBlank(message = "Name is required") @Size(min = 2, max = 80, message = "Name must be 2-80 characters")
             String displayName,
-            @Size(max = 120, message = "Location must be at most 120 characters") String location) {
+            @Size(max = 120, message = "Location must be at most 120 characters") String location,
+            @AssertTrue(message = "Please confirm you are 18 or older and accept the Terms and Privacy Policy")
+            boolean acceptTerms) {
     }
 
     public record LoginRequest(

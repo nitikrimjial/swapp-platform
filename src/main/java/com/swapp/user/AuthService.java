@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import com.swapp.common.ApiException;
+import com.swapp.common.BaseEntity;
 import com.swapp.config.SiteProperties;
 import com.swapp.security.JwtService;
 import com.swapp.security.JwtService.IssuedToken;
@@ -54,6 +55,8 @@ public class AuthService {
         user.setPasswordHash(encoder.encode(request.password()));
         user.setDisplayName(request.displayName().trim());
         user.setLocation(StringUtils.hasText(request.location()) ? request.location().trim() : null);
+        user.setTermsAcceptedAt(BaseEntity.now());
+        user.setTermsVersion(site.termsVersion());
         users.saveAndFlush(user);
         log.info("New user registered: id={}", user.getId());
         verification.sendVerification(user);
