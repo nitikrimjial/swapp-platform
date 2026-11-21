@@ -107,7 +107,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, VERIFIED_ONLY).hasAuthority(AuthUser.VERIFIED_AUTHORITY)
                         .requestMatchers("/api/users/me", "/api/users/me/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/items", "/api/items/{id}", "/api/categories",
-                                "/api/users/{id}", "/api/files/**", "/api/stats").permitAll()
+                                "/api/users/{id}", "/api/files/**", "/api/stats", "/api/site").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").authenticated()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()

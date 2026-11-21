@@ -66,6 +66,13 @@ public class User extends BaseEntity {
     @Column(name = "suspension_reason", length = 500)
     private String suspensionReason;
 
+    /** When the member accepted the Terms and Privacy Policy and confirmed they are 18 or older. */
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "terms_version", length = 20)
+    private String termsVersion;
+
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 

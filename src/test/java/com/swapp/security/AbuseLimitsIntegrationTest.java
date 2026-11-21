@@ -72,7 +72,7 @@ class AbuseLimitsIntegrationTest extends AbstractIntegrationTest {
             register("User " + i);
         }
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", "fourth@example.com", "password", "Passw0rd!",
+                        .content(toJson(Map.of("acceptTerms", true, "email", "fourth@example.com", "password", "Passw0rd!",
                                 "displayName", "Fourth"))))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER))
@@ -80,7 +80,7 @@ class AbuseLimitsIntegrationTest extends AbstractIntegrationTest {
         // Another address is unaffected.
         mvc.perform(post("/api/auth/register").with(r -> { r.setRemoteAddr("203.0.113.9"); return r; })
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", "fifth@example.com", "password", "Passw0rd!",
+                        .content(toJson(Map.of("acceptTerms", true, "email", "fifth@example.com", "password", "Passw0rd!",
                                 "displayName", "Fifth"))))
                 .andExpect(status().isCreated());
     }

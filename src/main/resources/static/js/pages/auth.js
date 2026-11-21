@@ -48,6 +48,10 @@ form.addEventListener('submit', async (e) => {
       fieldError(form, 'password', 'Use at least 8 characters with a letter and a number'); valid = false;
     }
     if (!data.location) delete data.location;
+    data.acceptTerms = form.elements.acceptTerms.checked;
+    if (!data.acceptTerms) {
+      fieldError(form, 'acceptTerms', 'Please confirm you are 18 or older and accept the Terms and Privacy Policy'); valid = false;
+    }
   } else if (!data.password) {
     fieldError(form, 'password', 'Password is required'); valid = false;
   }

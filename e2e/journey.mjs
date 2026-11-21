@@ -74,6 +74,7 @@ async function register(u, location) {
   await u.page.fill('#email', u.email);
   await u.page.fill('#password', 'Passw0rd!');
   await u.page.fill('#location', location);
+  await u.page.check('#acceptTerms');
   await u.page.click('button[type=submit]');
   await u.page.waitForURL(/home\.html/);
 }

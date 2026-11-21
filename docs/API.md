@@ -14,7 +14,7 @@ Paginated responses share this envelope:
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | public | `{email, password, displayName, location?}` → 201 `{user, accessToken, expiresAt}` + cookie |
+| POST | `/auth/register` | public | `{email, password, displayName, location?, acceptTerms}` → 201 `{user, accessToken, expiresAt}` + cookie. `acceptTerms` must be `true` (the member confirms they are 18 or older and accepts the Terms and Privacy Policy); the time and terms version are recorded |
 | POST | `/auth/login` | public | `{email, password}` → `{user, accessToken, expiresAt}` + cookie. 401 on bad credentials, 429 when rate-limited |
 | POST | `/auth/logout` | public | Clears the cookie → 204 |
 | GET | `/auth/session` | public | `{user, emailVerificationRequired}`; `user` is `null` for anonymous visitors |
@@ -53,6 +53,7 @@ When `REQUIRE_EMAIL_VERIFICATION=true`, members who have not confirmed their ema
 | --- | --- | --- | --- |
 | GET | `/categories` | public | `[{id, name, slug, icon}]` |
 | GET | `/stats` | public | `{members, activeListings, completedSwaps}` |
+| GET | `/site` | public | `{contactEmail, termsVersion, emailVerificationRequired}`, used by the Privacy Policy, Terms and Safety pages |
 | GET | `/files/{key}` | public | Image bytes (immutable, long-cache) |
 
 ## Items

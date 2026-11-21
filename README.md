@@ -10,7 +10,10 @@ Swapp lets neighbours list things they no longer use, offer their own items in e
 
 | Area | What works |
 | --- | --- |
-| **Accounts** | Registration, sign-in/out, BCrypt password hashing, JWT in an HttpOnly `SameSite=Strict` cookie, profile editing, avatar upload, password change (revokes other sessions), "sign out everywhere" |
+| **Accounts** | Registration, sign-in/out, BCrypt password hashing, JWT in an HttpOnly `SameSite=Strict` cookie, profile editing, avatar upload, password change (revokes other sessions), "sign out everywhere", **forgot / reset password** and **email verification** by single-use emailed links, security alert emails |
+| **Your data** | Download everything as JSON, and **delete your account** yourself (personal data erased, history kept anonymised for the other side), as India's DPDP Act requires |
+| **Trust & safety** | **Report** listings, members or messages (evidence snapshot); two-way **block**; a **moderation queue** for admins to dismiss reports, take listings down or **suspend** members, which cancels their exchanges in progress |
+| **Legal** | Privacy Policy, Terms (community guidelines, prohibited items) and Safety tips pages; 18+ and terms acceptance recorded at sign-up with its version |
 | **Listings** | Create, edit, delete (soft delete keeps history), up to 6 photos per listing with reorder / cover selection, mark available / unavailable. Four listing types: **Exchange**, **Donation**, **Free giveaway**, **Request** |
 | **Discovery** | **Near me**: radius search (1-50 km) from your GPS position or any searched place, sorted nearest first with distance on every card. Search over title and description (trigram-indexed), filters for category, multiple conditions, listing type, posted within, photos only and hide my listings, plus pagination. Every filter runs in the database |
 | **Exchange offers** | Offer one of your items for someone else's; accept, decline or withdraw. Business rules enforced transactionally with row locks (see below) |
@@ -18,7 +21,7 @@ Swapp lets neighbours list things they no longer use, offer their own items in e
 | **Donations & giveaways** | A separate request workflow: users request the item, the owner chooses who receives it, then marks it handed over |
 | **Notifications** | Persistent notifications for offers, acceptances, rejections, cancellations, exchange updates and donation requests, with read/unread state, delivered live over WebSocket |
 | **Messaging** | Private one-to-one conversations with item references, unread tracking, read receipts, history paging and realtime delivery |
-| **UI** | 19 responsive pages (desktop, tablet, mobile with bottom navigation), light/dark themes, loading skeletons, empty states, toasts, confirmation dialogs, inline validation |
+| **UI** | 26 responsive pages (desktop, tablet, mobile with bottom navigation), light/dark themes, loading skeletons, empty states, toasts, confirmation dialogs, inline validation |
 
 ### Exchange rules (enforced on the server)
 

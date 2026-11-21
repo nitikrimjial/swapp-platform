@@ -25,7 +25,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     @Test
     void registerIssuesHttpOnlyStrictCookieAndHashesPassword() throws Exception {
         MvcResult result = mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", "Alice@Example.com", "password", "Passw0rd!",
+                        .content(toJson(Map.of("acceptTerms", true, "email", "Alice@Example.com", "password", "Passw0rd!",
                                 "displayName", "Alice"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user.email").value("alice@example.com"))
@@ -38,13 +38,18 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
         String hash = jdbc.queryForObject("select password_hash from users where email = 'alice@example.com'",
                 String.class);
         assertThat(hash).startsWith("$2").isNotEqualTo("Passw0rd!");
+        // Consent to the Terms and Privacy Policy (and the 18+ confirmation) is recorded with its version.
+        Map<String, Object> consent = jdbc.queryForMap(
+                "select terms_accepted_at, terms_version from users where email = 'alice@example.com'");
+        assertThat(consent.get("terms_accepted_at")).isNotNull();
+        assertThat(consent.get("terms_version")).isEqualTo("2026-11-21");
     }
 
     @Test
     void duplicateEmailIsRejectedCaseInsensitively() throws Exception {
         register("Alice");
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", "ALICE@example.com", "password", "Passw0rd!",
+                        .content(toJson(Map.of("acceptTerms", true, "email", "ALICE@example.com", "password", "Passw0rd!",
                                 "displayName", "Other"))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("An account with this email already exists"));
@@ -57,7 +62,8 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.email").exists())
                 .andExpect(jsonPath("$.fieldErrors.password").exists())
-                .andExpect(jsonPath("$.fieldErrors.displayName").exists());
+                .andExpect(jsonPath("$.fieldErrors.displayName").exists())
+                .andExpect(jsonPath("$.fieldErrors.acceptTerms").value(containsString("18 or older")));
     }
 
     @Test
@@ -180,7 +186,7 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
         // 32 characters, but 92 bytes in UTF-8: passes @Size(max = 72) yet exceeds bcrypt's 72-byte input limit.
         String hindi = "अ".repeat(30) + "a1";
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
-                        .content(toJson(Map.of("email", "hindi@example.com", "password", hindi,
+                        .content(toJson(Map.of("acceptTerms", true, "email", "hindi@example.com", "password", hindi,
                                 "displayName", "Asha"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors.password").exists());

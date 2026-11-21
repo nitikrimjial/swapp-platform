@@ -95,7 +95,7 @@ function renderHeader(active) {
             <button type="button" class="danger" id="logout-btn" role="menuitem">${icon('logout')}Sign out</button>
           </div>
         </div>` : html`
-        <a class="btn btn-ghost btn-sm" href="/login.html">Sign in</a>
+        <a class="btn btn-ghost btn-sm hide-xs" href="/login.html">Sign in</a>
         <a class="btn btn-primary btn-sm" href="/register.html">Join free</a>`}
     </nav>
   </div>`);
@@ -167,7 +167,7 @@ function renderFooter() {
         ? html`<li><a href="/settings.html">Settings</a></li><li><a href="/profile.html">Profile</a></li>`
         : html`<li><a href="/register.html">Create account</a></li><li><a href="/login.html">Sign in</a></li>`}</ul></div>
     </div>
-    <div class="footer-bottom"><span>© ${new Date().getFullYear()} Swapp. Built for communities.</span><span>Exchange · Donate · Share</span></div>
+    <div class="footer-bottom"><span>© ${new Date().getFullYear()} Swapp. Built for communities.</span><nav aria-label="Legal"><a href="/safety.html">Safety tips</a> · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a></nav></div>
   </div>`);
   document.body.appendChild(footer);
 }

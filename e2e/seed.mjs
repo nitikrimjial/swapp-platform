@@ -76,7 +76,7 @@ const jitter = () => { jitterSeed = (jitterSeed * 9301 + 49297) % 233280; return
 async function account({ name, email, location, bio, colors }) {
   let auth;
   try {
-    auth = await call(null, 'POST', '/api/auth/register', { email, password: PASSWORD, displayName: name, location });
+    auth = await call(null, 'POST', '/api/auth/register', { email, password: PASSWORD, displayName: name, location, acceptTerms: true });
   } catch (e) {
     if (e.status !== 409) throw e;
     auth = await call(null, 'POST', '/api/auth/login', { email, password: PASSWORD });
