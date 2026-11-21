@@ -5,6 +5,7 @@ services:
     name: swapp
     runtime: docker
     plan: free
+    region: singapore              # keep next to the Neon database (AWS ap-southeast-1); the default is oregon
     autoDeploy: true
     healthCheckPath: /actuator/health
     envVars:
