@@ -124,7 +124,7 @@ cd e2e && npm install && node journey.mjs http://localhost:8080 ./shots
 | `DB_POOL_SIZE` | no | `10` | Hikari connection pool size |
 | `RATE_LIMIT_ENABLED` | no | `true` | Request throttling on sign-up, sign-in and writes (see ARCHITECTURE.md) |
 | `PUBLIC_URL` | no | `RENDER_EXTERNAL_URL`, else `http://localhost:8080` | Base URL used in links inside emails |
-| `CONTACT_EMAIL` | yes | `support@swapp.example` | Public contact for privacy questions and grievances (Privacy Policy, emails) |
+| `CONTACT_EMAIL` | yes | `gamers3988@gmail.com` | Public contact for privacy questions and grievances (Privacy Policy, emails) |
 | `MAIL_PROVIDER` | yes (`smtp`) | `log` | `log` writes emails to the application log; `smtp` delivers them |
 | `MAIL_FROM` | with smtp | `no-reply@swapp.example` | Sender address, verified at the email provider |
 | `SMTP_HOST` / `SMTP_PORT` | with smtp | empty / `587` | SMTP relay, e.g. `smtp-relay.brevo.com` (STARTTLS required) |

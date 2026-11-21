@@ -80,7 +80,7 @@ app:
     # Base URL for links in emails. On Render, RENDER_EXTERNAL_URL is set automatically.
     public-url: ${PUBLIC_URL:${RENDER_EXTERNAL_URL:http://localhost:8080}}
     # Shown on the Privacy Policy and in emails for privacy questions and grievances (DPDP Act 2023).
-    contact-email: ${CONTACT_EMAIL:support@swapp.example}
+    contact-email: ${CONTACT_EMAIL:gamers3988@gmail.com}
     # Date of the current Terms and Privacy Policy; bump it when they change materially.
     terms-version: "2026-11-21"
   mail:
