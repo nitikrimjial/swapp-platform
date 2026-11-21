@@ -16,7 +16,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.CrossOriginOpenerPolicyHeaderWriter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,6 +27,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.swapp.common.ApiError;
 import com.swapp.security.AuthCookies;
 import com.swapp.security.JwtAuthenticationFilter;
+import com.swapp.security.RateLimitFilter;
+import com.swapp.security.RequestRateLimiter;
 import com.swapp.security.TokenAuthenticator;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,16 +45,24 @@ public class SecurityConfig {
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: blob:",
-            // Place search / reverse geocoding for "near me" uses OpenStreetMap Nominatim directly from the browser.
-            "connect-src 'self' ws: wss: https://nominatim.openstreetmap.org",
+            // 'self' covers the same-origin WebSocket (CSP Level 3). Place search / reverse geocoding for "near me"
+            // uses OpenStreetMap Nominatim directly from the browser.
+            "connect-src 'self' https://nominatim.openstreetmap.org",
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
             "frame-ancestors 'none'");
 
+    /** Only geolocation ("near me") is used, and only by our own pages. */
+    private static final String PERMISSIONS_POLICY =
+            "geolocation=(self), camera=(), microphone=(), payment=(), usb=()";
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, TokenAuthenticator authenticator,
-                                                   AuthCookies cookies, ObjectMapper mapper) throws Exception {
+                                                   AuthCookies cookies, ObjectMapper mapper,
+                                                   RequestRateLimiter rateLimiter, AppProperties props)
+            throws Exception {
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(authenticator, cookies);
         http
                 // Stateless JWT in a SameSite=Strict HttpOnly cookie (or a Bearer header): the browser never sends the
                 // credential on cross-site requests, so classic CSRF tokens are unnecessary.
@@ -65,7 +77,12 @@ public class SecurityConfig {
                 .headers(h -> h
                         .contentSecurityPolicy(csp -> csp.policyDirectives(CSP))
                         .frameOptions(f -> f.deny())
-                        .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
+                        .referrerPolicy(r -> r.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
+                        // Sent only on HTTPS requests (the app trusts X-Forwarded-Proto from the platform proxy).
+                        .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31_536_000).includeSubDomains(true))
+                        .crossOriginOpenerPolicy(coop -> coop
+                                .policy(CrossOriginOpenerPolicyHeaderWriter.CrossOriginOpenerPolicy.SAME_ORIGIN))
+                        .addHeaderWriter(new StaticHeadersWriter("Permissions-Policy", PERMISSIONS_POLICY)))
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> writeError(mapper, req, res, 401, "Unauthorized",
                                 "Please sign in to continue"))
@@ -82,8 +99,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .anyRequest().permitAll())
-                .addFilterBefore(new JwtAuthenticationFilter(authenticator, cookies),
-                        UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(new RateLimitFilter(rateLimiter, props.limits(), mapper), JwtAuthenticationFilter.class);
         return http.build();
     }
 

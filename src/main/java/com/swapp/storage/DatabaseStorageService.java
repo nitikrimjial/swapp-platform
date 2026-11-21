@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.swapp.common.BaseEntity;
 
 /**
- * Stores images inside MySQL. Images then persist across redeploys on any host without a separate volume or bucket,
+ * Stores images inside PostgreSQL (BYTEA). Images then persist across redeploys on any host without a separate volume or bucket,
  * and are backed up together with the rest of the data.
  */
 @Service

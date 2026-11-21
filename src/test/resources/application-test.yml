@@ -16,6 +16,9 @@ app:
     bcrypt-strength: 4
   cors:
     allowed-origins: http://localhost:8080
+  limits:
+    # Tests register many users from one address; RateLimitIntegrationTest switches limiting on with small limits.
+    rate-limit-enabled: false
 
 logging:
   level:

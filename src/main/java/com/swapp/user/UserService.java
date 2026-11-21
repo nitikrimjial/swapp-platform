@@ -2,6 +2,7 @@ package com.swapp.user;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +23,11 @@ import com.swapp.messaging.MessageRepository;
 import com.swapp.notification.NotificationRepository;
 import com.swapp.offer.OfferRepository;
 import com.swapp.offer.OfferStatus;
+import com.swapp.realtime.SessionsRevokedEvent;
 import com.swapp.security.JwtService;
 import com.swapp.security.JwtService.IssuedToken;
 import com.swapp.storage.ImageValidator;
+import com.swapp.storage.StorageQuota;
 import com.swapp.storage.StorageService;
 import com.swapp.user.dto.UserDtos.ChangePasswordRequest;
 import com.swapp.user.dto.UserDtos.PublicProfileDto;
@@ -49,11 +52,14 @@ public class UserService {
     private final JwtService jwtService;
     private final StorageService storage;
     private final ImageValidator imageValidator;
+    private final StorageQuota storageQuota;
+    private final ApplicationEventPublisher events;
 
     public UserService(UserRepository users, ItemRepository items, OfferRepository offers,
                        ExchangeRepository exchanges, DonationRequestRepository donationRequests,
                        NotificationRepository notifications, MessageRepository messages, PasswordEncoder encoder,
-                       JwtService jwtService, StorageService storage, ImageValidator imageValidator) {
+                       JwtService jwtService, StorageService storage, ImageValidator imageValidator,
+                       StorageQuota storageQuota, ApplicationEventPublisher events) {
         this.users = users;
         this.items = items;
         this.offers = offers;
@@ -65,6 +71,8 @@ public class UserService {
         this.jwtService = jwtService;
         this.storage = storage;
         this.imageValidator = imageValidator;
+        this.storageQuota = storageQuota;
+        this.events = events;
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +94,8 @@ public class UserService {
     public UserDto updateAvatar(Long userId, MultipartFile file) {
         User user = load(userId);
         var image = imageValidator.validate(file);
+        // One avatar per user, so only the site-wide ceiling applies; the old file is deleted after commit.
+        storageQuota.checkSiteCapacity(image.data().length);
         String previous = user.getAvatarKey();
         user.setAvatarKey(storage.store(image.data(), image.contentType()));
         deleteAfterCommit(previous);
@@ -112,6 +122,7 @@ public class UserService {
         user.setPasswordHash(encoder.encode(request.newPassword()));
         user.revokeTokens();
         users.saveAndFlush(user);
+        events.publishEvent(new SessionsRevokedEvent(userId));
         log.info("User {} changed password; other sessions revoked", userId);
         return jwtService.issue(user);
     }
@@ -119,6 +130,7 @@ public class UserService {
     public void signOutEverywhere(Long userId) {
         User user = load(userId);
         user.revokeTokens();
+        events.publishEvent(new SessionsRevokedEvent(userId));
         log.info("User {} signed out of all sessions", userId);
     }
 

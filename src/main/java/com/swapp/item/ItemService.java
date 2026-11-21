@@ -35,6 +35,7 @@ import com.swapp.offer.OfferService;
 import com.swapp.offer.OfferStatus;
 import com.swapp.security.AuthUser;
 import com.swapp.storage.ImageValidator;
+import com.swapp.storage.StorageQuota;
 import com.swapp.storage.StorageService;
 import com.swapp.user.User;
 import com.swapp.user.UserRepository;
@@ -58,12 +59,14 @@ public class ItemService {
     private final DonationRequestRepository donationRequests;
     private final StorageService storage;
     private final ImageValidator imageValidator;
+    private final StorageQuota storageQuota;
     private final int maxImages;
+    private final int maxActiveListings;
 
     public ItemService(ItemRepository items, CategoryRepository categories, UserRepository users, ItemLocker locker,
                        OfferService offerService, OfferRepository offers, DonationService donationService,
                        DonationRequestRepository donationRequests, StorageService storage,
-                       ImageValidator imageValidator, AppProperties props) {
+                       ImageValidator imageValidator, StorageQuota storageQuota, AppProperties props) {
         this.items = items;
         this.categories = categories;
         this.users = users;
@@ -74,7 +77,9 @@ public class ItemService {
         this.donationRequests = donationRequests;
         this.storage = storage;
         this.imageValidator = imageValidator;
+        this.storageQuota = storageQuota;
         this.maxImages = props.storage().maxImagesPerItem();
+        this.maxActiveListings = props.limits().maxActiveListingsPerUser();
     }
 
     @Transactional(readOnly = true)
@@ -101,6 +106,11 @@ public class ItemService {
 
     public ItemDetailDto create(Long userId, ItemRequest request) {
         User owner = users.findById(userId).orElseThrow(() -> ApiException.notFound("User"));
+        // Soft cap (two simultaneous requests may both pass); it exists to stop scripted spam, not to be exact.
+        if (items.countByOwnerIdAndStatusNot(userId, ItemStatus.REMOVED) >= maxActiveListings) {
+            throw ApiException.conflict("You can have at most " + maxActiveListings
+                    + " listings at a time. Remove an old one to post a new one.");
+        }
         Item item = new Item();
         item.setOwner(owner);
         apply(item, request);
@@ -162,6 +172,8 @@ public class ItemService {
             throw ApiException.badRequest("A listing can have at most " + maxImages + " images");
         }
         var validated = files.stream().map(imageValidator::validate).toList();
+        storageQuota.checkUserUpload(item.getOwner().getId(),
+                validated.stream().mapToLong(image -> image.data().length).sum());
         int position = item.getImages().stream().mapToInt(ItemImage::getPosition).max().orElse(-1) + 1;
         List<String> storedKeys = new ArrayList<>();
         for (var image : validated) {

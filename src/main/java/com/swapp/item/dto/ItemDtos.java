@@ -44,7 +44,8 @@ public final class ItemDtos {
     public record ItemStatusRequest(@NotNull(message = "Status is required") ItemStatus status) {
     }
 
-    public record ImageOrderRequest(@NotEmpty(message = "Image order is required") List<Long> imageIds) {
+    public record ImageOrderRequest(
+            @NotEmpty(message = "Image order is required") @Size(max = 20, message = "Too many images") List<Long> imageIds) {
     }
 
     public record ImageDto(Long id, String url) {

@@ -77,6 +77,8 @@ Free Render web services sleep after 15 minutes without traffic, and the next vi
 - `GET https://<domain>/actuator/health` should return `{"status":"UP"}`.
 - Load demo data (optional): `cd e2e && npm install && node seed.mjs https://<domain>`
 - Run the browser journey against the live site: `node journey.mjs https://<domain> ./shots`
-- Check that the `swapp_token` cookie is `Secure; HttpOnly; SameSite=Strict`.
+- Check that the `swapp_token` cookie is `Secure; HttpOnly; SameSite=Strict`, and that responses carry `Strict-Transport-Security` (this confirms the app sees the platform's `X-Forwarded-Proto`).
+- Abuse limits are on by default (see `docs/ARCHITECTURE.md`). They count per instance, so they stay correct only while the app runs as one instance, which is the case on every option above.
+- Backups: Neon's free plan keeps a short point-in-time restore window. For anything beyond a demo, schedule a `pg_dump` too.
 
 "Near me" uses the browser Geolocation API, which only works on HTTPS pages (and on `localhost`). Every option above serves HTTPS.

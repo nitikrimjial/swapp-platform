@@ -16,7 +16,7 @@ class ImageValidatorTest {
 
     private final ImageValidator validator = new ImageValidator(new AppProperties(null, null,
             new AppProperties.Cors(List.of()), new AppProperties.Security(4, 3, Duration.ofMinutes(1)),
-            new AppProperties.Storage("database", "x", 64, 6)));
+            new AppProperties.Storage("database", "x", 64, 6), null));
 
     @Test
     void detectsSupportedFormatsBySignature() {
