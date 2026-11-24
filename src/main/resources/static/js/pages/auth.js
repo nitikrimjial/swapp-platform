@@ -16,6 +16,26 @@ if (param('next')) {
   $('#switch-link').href = `${other}?next=${encodeURIComponent(next)}`;
 }
 
+// "Continue with Google": shown only when the server has Google credentials configured.
+const GOOGLE_OUTCOMES = {
+  cancelled: ['info', 'Google sign-in was cancelled', 'Nothing was shared. You can try again or use your email.'],
+  unverified: ['warning', 'Your Google email isn’t verified', 'Verify it with Google first, or sign up with email and password.'],
+  suspended: ['danger', 'This account is suspended', 'You can’t sign in while the suspension lasts. Check your email for details.'],
+  busy: ['warning', 'Too many attempts', 'Please wait a minute and try again.'],
+  error: ['danger', 'Google sign-in didn’t work', 'Something went wrong on the way back from Google. Please try again.'],
+};
+const googleOutcome = GOOGLE_OUTCOMES[param('google')];
+if (googleOutcome) {
+  const [kind, title, text] = googleOutcome;
+  render('#auth-notice', html`<div class="banner ${kind}" role="alert">${icon(kind === 'info' ? 'info' : 'alert')}<div><strong>${title}</strong><br>${text}</div></div>`);
+  history.replaceState(null, '', location.pathname + (param('next') ? `?next=${encodeURIComponent(param('next'))}` : ''));
+}
+http.get('/api/site').then((site) => {
+  if (!site.googleSignIn) return;
+  if (param('next')) $('#google-signin').href = `/oauth2/authorization/google?next=${encodeURIComponent(next)}`;
+  $('#social-signin').classList.remove('hidden');
+}).catch(() => { /* the email form still works */ });
+
 render('#aside-points', [
   ['swap', 'Exchange items without money'],
   ['heart', 'Donate and give away in a few taps'],

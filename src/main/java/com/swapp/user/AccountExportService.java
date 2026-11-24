@@ -27,6 +27,7 @@ import com.swapp.notification.NotificationRepository;
 import com.swapp.offer.OfferRepository;
 import com.swapp.offer.OfferStatus;
 import com.swapp.offer.dto.OfferDtos.OfferDto;
+import com.swapp.user.dto.UserDtos.IdentityDto;
 import com.swapp.user.dto.UserDtos.UserDto;
 
 /**
@@ -48,11 +49,12 @@ public class AccountExportService {
     private final ConversationRepository conversations;
     private final MessageRepository messages;
     private final NotificationRepository notifications;
+    private final ExternalSignInService externalSignIn;
 
     public AccountExportService(UserRepository users, ItemRepository items, OfferRepository offers,
                                 ExchangeRepository exchanges, DonationRequestRepository donationRequests,
                                 ConversationRepository conversations, MessageRepository messages,
-                                NotificationRepository notifications) {
+                                NotificationRepository notifications, ExternalSignInService externalSignIn) {
         this.users = users;
         this.items = items;
         this.offers = offers;
@@ -61,6 +63,7 @@ public class AccountExportService {
         this.conversations = conversations;
         this.messages = messages;
         this.notifications = notifications;
+        this.externalSignIn = externalSignIn;
     }
 
     public AccountExport export(Long userId) {
@@ -83,6 +86,7 @@ public class AccountExportService {
                 "Everything Swapp holds about your account. Other members' names appear only where they are part "
                         + "of your own activity. Photos are linked by URL.",
                 UserDto.from(user),
+                externalSignIn.identities(userId),
                 items.findByOwnerIdOrderByCreatedAtDesc(userId).stream()
                         .map(i -> ItemDetailDto.from(i, ownerView)).toList(),
                 offers.findByOffererIdAndStatusIn(userId, allOffers, all).map(o -> OfferDto.from(o, null)).toList(),
@@ -98,7 +102,8 @@ public class AccountExportService {
                         .map(NotificationDto::from).toList());
     }
 
-    public record AccountExport(Instant exportedAt, String notice, UserDto profile, List<ItemDetailDto> listings,
+    public record AccountExport(Instant exportedAt, String notice, UserDto profile,
+                                List<IdentityDto> connectedSignInAccounts, List<ItemDetailDto> listings,
                                 List<OfferDto> offersMade, List<OfferDto> offersReceived,
                                 List<ExchangeDto> exchanges, List<DonationRequestDto> donationRequestsMade,
                                 List<DonationRequestDto> donationRequestsReceived,

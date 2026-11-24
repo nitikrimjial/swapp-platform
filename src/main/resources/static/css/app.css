@@ -516,6 +516,17 @@ dialog.modal[open] { animation: modal-in .18s ease-out; display: flex; flex-dire
 .auth-card .lead { color: var(--muted); margin-bottom: 26px; }
 .auth-switch { margin-top: 20px; text-align: center; color: var(--muted); font-size: .92rem; }
 
+/* "Continue with Google", following Google's sign-in branding (neutral button, full-colour G). */
+.btn-google { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong, var(--border)); gap: 12px; font-weight: 600; }
+.btn-google:hover { background: var(--surface-2); color: var(--text); }
+.google-g { width: 18px; height: 18px; flex: none; }
+.identity-row .google-g { width: 24px; height: 24px; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: .85rem; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.identity-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); }
+.identity-row .who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.identity-row .who span { overflow-wrap: anywhere; }
+
 /* ---------- landing ---------- */
 
 .hero { position: relative; overflow: hidden; padding: 56px 0 72px; }

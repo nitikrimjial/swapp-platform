@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.swapp.common.ApiException;
 import com.swapp.common.PageResponse;
 import com.swapp.item.ItemService;
 import com.swapp.item.ItemStatus;
@@ -32,10 +33,12 @@ import com.swapp.security.JwtService;
 import com.swapp.user.AccountExportService.AccountExport;
 import com.swapp.user.dto.UserDtos.ChangePasswordRequest;
 import com.swapp.user.dto.UserDtos.DeleteAccountRequest;
+import com.swapp.user.dto.UserDtos.IdentityDto;
 import com.swapp.user.dto.UserDtos.PublicProfileDto;
 import com.swapp.user.dto.UserDtos.UpdateProfileRequest;
 import com.swapp.user.dto.UserDtos.UserDto;
 import com.swapp.user.dto.UserDtos.UserSummaryCounts;
+import com.swapp.user.identity.IdentityProvider;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -51,10 +54,12 @@ public class UserController {
     private final EmailVerificationService verification;
     private final AccountDeletionService deletion;
     private final AccountExportService export;
+    private final ExternalSignInService externalSignIn;
 
     public UserController(UserService userService, ItemService itemService, AuthCookies cookies,
                           JwtService jwtService, EmailVerificationService verification,
-                          AccountDeletionService deletion, AccountExportService export) {
+                          AccountDeletionService deletion, AccountExportService export,
+                          ExternalSignInService externalSignIn) {
         this.userService = userService;
         this.itemService = itemService;
         this.cookies = cookies;
@@ -62,6 +67,7 @@ public class UserController {
         this.verification = verification;
         this.deletion = deletion;
         this.export = export;
+        this.externalSignIn = externalSignIn;
     }
 
     @GetMapping("/me")
@@ -69,12 +75,12 @@ public class UserController {
         return userService.me(me.id());
     }
 
-    /** Permanently deletes the account after re-checking the password; see {@link AccountDeletionService}. */
+    /** Permanently deletes the account after re-authentication; see {@link AccountDeletionService}. */
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal AuthUser me,
                                               @Valid @RequestBody DeleteAccountRequest request,
                                               HttpServletResponse response) {
-        deletion.deleteAccount(me.id(), request.password());
+        deletion.deleteAccount(me, request.password());
         cookies.clear(response);
         return ResponseEntity.noContent().build();
     }
@@ -112,6 +118,24 @@ public class UserController {
                                                HttpServletResponse response) {
         var token = userService.changePassword(me.id(), request);
         cookies.write(response, token.token(), jwtService.expiration());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Sign-in providers (Google) connected to the account. */
+    @GetMapping("/me/identities")
+    public List<IdentityDto> identities(@AuthenticationPrincipal AuthUser me) {
+        return externalSignIn.identities(me.id());
+    }
+
+    @DeleteMapping("/me/identities/{provider}")
+    public ResponseEntity<Void> disconnect(@AuthenticationPrincipal AuthUser me, @PathVariable String provider) {
+        IdentityProvider which;
+        try {
+            which = IdentityProvider.valueOf(provider.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw ApiException.notFound("Connected account");
+        }
+        externalSignIn.disconnect(me.id(), which);
         return ResponseEntity.noContent().build();
     }
 

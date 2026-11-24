@@ -22,7 +22,8 @@ import jakarta.servlet.http.HttpServletResponse;
 /**
  * Throttles the endpoints an anonymous attacker can hammer (sign-up, sign-in, password change and reset: each costs a
  * bcrypt hash, which is expensive on a small instance; recovery emails, which could be used to spam an inbox) per client
- * address, and all writes per signed-in user. Runs after {@link JwtAuthenticationFilter} so the user is known.
+ * address, and all writes per signed-in user. Runs after {@link JwtAuthenticationFilter} so the user is known, and
+ * before Spring's OAuth filters, because each "Continue with Google" creates a short-lived server session.
  * Over-limit requests get 429 with {@code Retry-After}.
  */
 public class RateLimitFilter extends OncePerRequestFilter {
@@ -42,7 +43,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !limits.rateLimitEnabled() || !request.getRequestURI().startsWith("/api/");
+        String path = request.getRequestURI();
+        return !limits.rateLimitEnabled() || !(path.startsWith("/api/") || isOAuth(path));
     }
 
     @Override
@@ -51,6 +53,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Duration wait = check(request);
         if (wait.isZero()) {
             chain.doFilter(request, response);
+            return;
+        }
+        if (isOAuth(request.getRequestURI())) { // a page navigation, not an API call: explain on the sign-in page
+            response.sendRedirect("/login.html?google=busy");
             return;
         }
         long seconds = Math.max(1, (wait.toMillis() + 999) / 1000);
@@ -64,13 +70,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 request.getRequestURI(), null));
     }
 
+    /** Start of "Sign in with Google" and Google's redirect back. */
+    private static boolean isOAuth(String path) {
+        return path.startsWith("/oauth2/authorization/") || path.startsWith("/login/oauth2/code/");
+    }
+
     private Duration check(HttpServletRequest request) {
         String method = request.getMethod();
         String path = request.getRequestURI();
         boolean post = "POST".equals(method);
         String client = request.getRemoteAddr();
 
-        if (post && path.equals("/api/auth/register")) {
+        if (isOAuth(path)) {
+            return limiter.acquire("oauth:" + client, limits.authAttemptsPerMinute(), MINUTE);
+        }
+        if (post && (path.equals("/api/auth/register") || path.equals("/api/auth/google/complete"))) {
             return limiter.acquire("register:" + client, limits.registrationsPerHour(), HOUR);
         }
         if (post && path.equals("/api/auth/forgot-password")) {
