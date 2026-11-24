@@ -34,7 +34,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public abstract class AbstractIntegrationTest {
 
     private static final String[] TABLES = {"reports", "user_blocks", "messages", "conversations", "notifications", "donation_requests",
-            "exchanges", "offers", "item_images", "stored_files", "items", "user_tokens", "users"};
+            "exchanges", "offers", "item_images", "stored_files", "items", "user_tokens", "user_identities", "users"};
 
     @Autowired
     protected RecordingEmailSender mail;
@@ -56,7 +56,7 @@ public abstract class AbstractIntegrationTest {
 
     // ---------------------------------------------------------------- helpers
 
-    protected record TestUser(long id, String token, String email) {
+    public record TestUser(long id, String token, String email) {
     }
 
     protected TestUser register(String name) throws Exception {

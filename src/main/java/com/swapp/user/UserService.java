@@ -120,6 +120,11 @@ public class UserService {
     /** Changes the password and revokes every other session; returns a fresh token for the current one. */
     public IssuedToken changePassword(Long userId, ChangePasswordRequest request) {
         User user = load(userId);
+        if (!user.hasPassword()) {
+            // Setting a first password goes through the emailed reset link, which proves control of the address.
+            throw ApiException.badRequest("Your account doesn't have a password yet. Use \"Set a password\" to get a "
+                    + "link by email.");
+        }
         if (!encoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw ApiException.badRequest("Your current password is incorrect");
         }

@@ -22,8 +22,14 @@ Paginated responses share this envelope:
 | POST | `/auth/forgot-password` | public | `{email}` → 202 always (the same answer whether or not the email is registered). Emails a single-use reset link valid for 1 hour |
 | POST | `/auth/reset-password` | public | `{token, newPassword}` → 204. Revokes every session, clears the cookie and emails a security alert. 400 if the link is invalid, used or expired |
 | POST | `/auth/verify-email` | public | `{token}` → 204. Works without a session, so the link opens on any device. 400 if invalid, used or expired |
+| GET | `/oauth2/authorization/google?next=` | public | Browser navigation (not an API call): starts "Sign in with Google" and redirects to Google with PKCE, `state`, `nonce` and an account chooser. `?intent=connect` while signed in connects Google to the current account instead. Only available when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set (`/api/site` reports `googleSignIn`) |
+| GET | `/login/oauth2/code/google` | public | Google redirects back here. Signs in a returning member (cookie set, redirect to `next` or `/home.html`), sends a new person to `/complete-signup.html`, or redirects to `/login.html?google=<reason>` (`cancelled`, `unverified`, `suspended`, `busy`, `error`) |
+| GET | `/auth/google/pending` | public | The pending Google sign-up from the HttpOnly `swapp_signup` cookie (valid 15 minutes): `{provider, email, suggestedName}`, or 204 if there is none |
+| POST | `/auth/google/complete` | public | `{displayName, location?, acceptTerms}` → 201 `{user, accessToken, expiresAt}` + cookie. Creates the account (email already verified by Google, no password). 404 without a valid pending sign-up |
 
 Password rules: 8-72 characters, at least one letter and one digit.
+
+**Google accounts** are matched on Google's permanent account id (`sub`), never on email, and only Google-verified emails are accepted. If the Google email matches an existing Swapp account, Google is connected to it and the member gets a security alert email; if that account's email was never verified, its password is removed first (someone may have registered the address without owning it). A member who joined with Google has no password until they set one through "Forgot password".
 
 Emailed links carry the token in the URL fragment (`/reset-password.html#token=…`), so it never reaches server logs or `Referer` headers. Only a SHA-256 hash of each token is stored, and issuing a new link invalidates older ones.
 
@@ -33,15 +39,17 @@ When `REQUIRE_EMAIL_VERIFICATION=true`, members who have not confirmed their ema
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, latitude, longitude, avatarUrl, role, emailVerified, createdAt}` |
+| GET | `/users/me` | user | Own profile `{id, email, displayName, bio, location, latitude, longitude, avatarUrl, role, emailVerified, hasPassword, createdAt}` |
 | PUT | `/users/me` | user | `{displayName, bio?, location?, latitude?, longitude?}`. The home location is private and used for `near me` defaults |
 | POST | `/users/me/avatar` | user | multipart `file` (JPEG/PNG/GIF/WebP, ≤ 5 MB) |
 | DELETE | `/users/me/avatar` | user | Remove avatar |
 | POST | `/users/me/password` | user | `{currentPassword, newPassword}` → 204; revokes other sessions, refreshes the cookie and emails a security alert |
 | POST | `/users/me/sign-out-everywhere` | user | Revokes all tokens → 204 |
+| GET | `/users/me/identities` | user | Connected sign-in accounts `[{provider, label, email, linkedAt, lastUsedAt}]` |
+| DELETE | `/users/me/identities/google` | user | Disconnects Google → 204 and emails a security alert. 409 if the account has no password (it would lock the member out); 404 if not connected |
 | POST | `/users/me/verification-email` | user | Sends a new verification link → 202 (409 if already verified) |
 | GET | `/users/me/export` | user | Downloads everything Swapp holds about the member as `swapp-data-<date>.json` (profile, listings, offers, exchanges, requests, conversations, notifications). Limited to 5 per hour |
-| DELETE | `/users/me` | user | `{password}` → 204 and clears the cookie. Erases personal data, removes listings and photos, closes open offers and requests (notifying the other members) and revokes every session. 400 on a wrong password; 409 while an exchange or hand-over is in progress |
+| DELETE | `/users/me` | user | `{password}` → 204 (members without a password send `{}` and must have signed in within the last 10 minutes) and clears the cookie. Erases personal data, removes listings and photos, closes open offers and requests (notifying the other members) and revokes every session. 400 on a wrong password; 409 while an exchange or hand-over is in progress |
 | GET | `/users/me/summary` | user | Badge counts `{unreadNotifications, unreadMessages, pendingIncomingOffers, pendingOutgoingOffers, activeExchanges, pendingDonationRequests, activeListings}` |
 | GET | `/users/me/items?status=&page=&size=` | user | Own listings (all statuses except removed) |
 | GET | `/users/me/offerable-items` | user | Own available exchange listings, used by the offer dialog |

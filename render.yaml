@@ -36,3 +36,8 @@ services:
         sync: false
       - key: REQUIRE_EMAIL_VERIFICATION
         value: "false"               # set to "true" after SMTP works
+      # "Sign in with Google": OAuth client (Web application) from Google Cloud Console. Leave unset to hide the button.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false

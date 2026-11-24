@@ -26,7 +26,8 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 255)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 100)
+    /** bcrypt hash, or null for a member who signs in only with Google (or a deleted account). */
+    @Column(name = "password_hash", length = 100)
     private String passwordHash;
 
     @Column(name = "display_name", nullable = false, length = 80)
@@ -51,7 +52,6 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
 
-    /** Incremented to invalidate every previously issued token (password change, "sign out everywhere"). */
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
@@ -73,11 +73,16 @@ public class User extends BaseEntity {
     @Column(name = "terms_version", length = 20)
     private String termsVersion;
 
+    /** Incremented to invalidate every previously issued token (password change, "sign out everywhere"). */
     @Column(name = "token_version", nullable = false)
     private int tokenVersion;
 
     public void revokeTokens() {
         tokenVersion++;
+    }
+
+    public boolean hasPassword() {
+        return passwordHash != null;
     }
 
     public boolean isEmailVerified() {

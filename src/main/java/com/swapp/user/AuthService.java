@@ -69,8 +69,9 @@ public class AuthService {
         rateLimiter.checkAllowed(clientAddress, email);
         User user = users.findByEmailIgnoreCase(email).orElse(null);
         boolean valid;
-        if (user == null) {
-            encoder.matches(request.password(), dummyHash); // same cost as a real check
+        if (user == null || !user.hasPassword()) {
+            // Unknown email, or an account that signs in only with Google: same cost as a real check, same answer.
+            encoder.matches(request.password(), dummyHash);
             valid = false;
         } else {
             valid = encoder.matches(request.password(), user.getPasswordHash());

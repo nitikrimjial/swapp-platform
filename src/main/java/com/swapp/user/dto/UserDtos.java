@@ -79,9 +79,26 @@ public final class UserDtos {
             @Pattern(regexp = PASSWORD_RULE, message = PASSWORD_MESSAGE) String newPassword) {
     }
 
+    /** The password is required when the account has one; a Google-only account needs a recent sign-in instead. */
     public record DeleteAccountRequest(
-            @NotBlank(message = "Enter your password to confirm") @Size(max = 72)
-            @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE) String password) {
+            @Size(max = 72) @MaxUtf8Bytes(value = 72, message = PASSWORD_BYTES_MESSAGE) String password) {
+    }
+
+    /** Finishes creating an account for someone who came back from Google (see GoogleSignInController). */
+    public record CompleteSignupRequest(
+            @NotBlank(message = "Name is required") @Size(min = 2, max = 80, message = "Name must be 2-80 characters")
+            String displayName,
+            @Size(max = 120, message = "Location must be at most 120 characters") String location,
+            @AssertTrue(message = "Please confirm you are 18 or older and accept the Terms and Privacy Policy")
+            boolean acceptTerms) {
+    }
+
+    /** What the finish-sign-up page shows: the Google email (fixed) and a suggested name. */
+    public record PendingSignupDto(String provider, String email, String suggestedName) {
+    }
+
+    /** A provider account linked to the member, shown in Settings. */
+    public record IdentityDto(String provider, String label, String email, Instant linkedAt, Instant lastUsedAt) {
     }
 
     public record VerifyEmailRequest(
@@ -90,11 +107,12 @@ public final class UserDtos {
 
     /** Full profile, only ever returned to the user themself. */
     public record UserDto(Long id, String email, String displayName, String bio, String location, Double latitude,
-                          Double longitude, String avatarUrl, Role role, boolean emailVerified, Instant createdAt) {
+                          Double longitude, String avatarUrl, Role role, boolean emailVerified, boolean hasPassword,
+                          Instant createdAt) {
         public static UserDto from(User u) {
             return new UserDto(u.getId(), u.getEmail(), u.getDisplayName(), u.getBio(), u.getLocation(),
                     u.getLatitude(), u.getLongitude(), StorageService.publicUrl(u.getAvatarKey()), u.getRole(),
-                    u.isEmailVerified(), u.getCreatedAt());
+                    u.isEmailVerified(), u.hasPassword(), u.getCreatedAt());
         }
     }
 

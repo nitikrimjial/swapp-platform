@@ -7,6 +7,10 @@ spring:
     password: ${TEST_DB_PASSWORD:}
     hikari:
       maximum-pool-size: 20
+      # Each distinct test configuration keeps its own cached Spring context and pool. Open connections on demand, so
+      # several contexts stay well under PostgreSQL's default limit of 100 connections (locally and in CI).
+      minimum-idle: 1
+      idle-timeout: 30000
 
 app:
   jwt:

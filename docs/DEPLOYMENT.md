@@ -60,6 +60,21 @@ Password reset and email verification need real email delivery. Any SMTP provide
 5. Save. Render redeploys. Use **Forgot password** on the live site to check that the email arrives.
 6. Once it does, set `REQUIRE_EMAIL_VERIFICATION=true`, so new members must confirm their address before they can post, make offers or send messages.
 
+### 4. Sign in with Google (free, optional)
+
+1. Open <https://console.cloud.google.com>, create a project (for example "Swapp").
+2. **APIs and Services → OAuth consent screen** (called "Google Auth Platform" in newer consoles): choose **External**, fill in the app name, support email and the developer contact, and add the scopes `openid`, `email` and `profile` (all non-sensitive, so Google needs no verification review). Add links to `/privacy.html` and `/terms.html` on the live site. Then **Publish** the app; while it is in "Testing", only the test users you list can sign in.
+3. **APIs and Services → Credentials → Create credentials → OAuth client ID**, type **Web application**. Under **Authorised redirect URIs** add:
+   ```
+   http://localhost:8080/login/oauth2/code/google
+   https://<your-service>.onrender.com/login/oauth2/code/google
+   ```
+   (and the same path on a custom domain later). No JavaScript origins are needed: the whole flow runs on the server.
+4. Copy the client ID and secret into the Render service's **Environment** as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (never into the repository). For local testing, put them in your own `.env` or shell.
+5. Save. After the redeploy, the sign-in and sign-up pages show **Continue with Google**. Try it with a new Google account (you should land on "Almost there" to accept the Terms) and with the email of an existing account (it should sign you in and email a security alert).
+
+Without the two variables the button is hidden and the feature is off.
+
 Until SMTP is configured, the app runs with `MAIL_PROVIDER=log`. Emails are then only written to the logs (and a warning is logged at startup), so nobody receives them. The app refuses to start with `REQUIRE_EMAIL_VERIFICATION=true` unless `MAIL_PROVIDER=smtp`, because new members could never verify.
 
 ## Option 2: Railway (always on, about $5/month)
