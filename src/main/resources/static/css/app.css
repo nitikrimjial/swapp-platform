@@ -242,6 +242,8 @@ main.page { flex: 1; padding: 28px 0 64px; }
 .input-group .icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .input-group .input { padding-left: 40px; }
 .input-group .input-action { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
+.input-group .input-action .icon { position: static; transform: none; color: inherit; }
+.input-group.pw-group .input { padding-left: 14px; padding-right: 48px; }
 .form-grid { display: grid; gap: 0 16px; grid-template-columns: 1fr; }
 @media (min-width: 640px) { .form-grid.cols-2 { grid-template-columns: 1fr 1fr; } }
 .char-count { font-size: .78rem; color: var(--muted); text-align: right; }

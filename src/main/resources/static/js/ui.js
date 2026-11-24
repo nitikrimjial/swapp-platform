@@ -196,6 +196,42 @@ export async function withLoading(button, task) {
   }
 }
 
+/**
+ * Gives every password field under `root` a show/hide button, so people can check what they typed.
+ * Safe to call more than once; fields that already have a button are skipped.
+ */
+export function passwordToggles(root = document) {
+  $$('input[type="password"]', root).forEach((input) => {
+    if (input.dataset.toggle) return;
+    input.dataset.toggle = 'on';
+    let group = input.parentElement;
+    if (!group.classList.contains('input-group')) {
+      group = document.createElement('div');
+      group.className = 'input-group';
+      input.replaceWith(group);
+      group.append(input);
+    }
+    group.classList.add('pw-group');
+    let button = $('.input-action', group);
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn btn-ghost btn-icon btn-sm input-action';
+      group.append(button);
+    }
+    const set = (shown) => {
+      input.type = shown ? 'text' : 'password';
+      button.setAttribute('aria-label', shown ? 'Hide password' : 'Show password');
+      button.setAttribute('aria-pressed', String(shown));
+      render(button, icon(shown ? 'eyeOff' : 'eye'));
+    };
+    set(false);
+    button.addEventListener('click', () => { set(input.type === 'password'); input.focus(); });
+    // Never leave a password readable in a field that is being sent.
+    if (input.form) input.form.addEventListener('submit', () => set(false));
+  });
+}
+
 export function clearErrors(form) {
   $$('.field.has-error', form).forEach((f) => f.classList.remove('has-error'));
   $$('.error-text', form).forEach((e) => e.remove());
@@ -288,6 +324,7 @@ export function openDialog({ title, body, submitText = 'Confirm', cancelText = '
         ${hideSubmit ? '' : html`<button type="submit" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-submit>${submitText}</button>`}
       </div></form>`);
     document.body.appendChild(dialog);
+    passwordToggles(dialog);
     let result = null;
     const close = () => { dialog.close(); };
     dialog.addEventListener('close', () => { dialog.remove(); resolve(result); });

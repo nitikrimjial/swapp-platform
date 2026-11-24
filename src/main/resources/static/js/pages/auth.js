@@ -43,16 +43,6 @@ render('#aside-points', [
   ['shield', 'Both sides confirm every exchange'],
 ].map(([ic, text]) => html`<li>${icon(ic)}${text}</li>`));
 
-const pw = $('#password');
-const toggle = $('#toggle-password');
-render(toggle, icon('eye'));
-toggle.addEventListener('click', () => {
-  const show = pw.type === 'password';
-  pw.type = show ? 'text' : 'password';
-  toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-  render(toggle, icon(show ? 'eyeOff' : 'eye'));
-});
-
 const form = $('#auth-form');
 form.addEventListener('submit', async (e) => {
   e.preventDefault();

@@ -1,6 +1,6 @@
 // Page bootstrap: authentication state, header/footer, badge counts and realtime updates.
 import { http, ApiError } from './api.js';
-import { html, render, icon, avatar, toast, $, $$, raw } from './ui.js';
+import { html, render, icon, avatar, toast, $, $$, raw, passwordToggles } from './ui.js';
 
 let currentUser = null;
 let verificationRequired = false;
@@ -52,6 +52,7 @@ export async function initPage({ auth = 'optional', active = '' } = {}) {
     refreshCounts();
     connectRealtime();
   }
+  passwordToggles();
   return { user: currentUser };
 }
 
@@ -71,7 +72,6 @@ function renderHeader(active) {
     </form>
     <nav class="header-nav" aria-label="Main">
       ${navLink('/browse.html', 'browse', 'grid', 'Browse')}
-      ${navLink('/browse.html?near=me', 'near', 'pin', 'Near me')}
       ${navLink('/giveaways.html', 'giveaways', 'gift', 'Free stuff')}
       ${u ? html`
         <a class="btn btn-primary btn-sm hide-sm" href="/item-new.html">${icon('plus')}List an item</a>

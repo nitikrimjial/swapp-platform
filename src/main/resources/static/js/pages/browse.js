@@ -1,9 +1,9 @@
 import { initPage } from '../app.js';
 import { http } from '../api.js';
-import { html, render, icon, itemCard, skeletonCards, emptyState, errorState, pagination, CONDITIONS, LISTING_TYPES, $, $$ } from '../ui.js';
-import { locationPicker, savedOrigin, saveOrigin, round3 } from '../location.js';
+import { html, render, icon, itemCard, skeletonCards, emptyState, errorState, pagination, toast, CONDITIONS, LISTING_TYPES, $, $$ } from '../ui.js';
+import { locationPicker, savedOrigin, saveOrigin, round3, currentPosition } from '../location.js';
 
-const { user } = await initPage({ auth: 'optional', active: new URLSearchParams(location.search).get('near') === 'me' ? 'near' : 'browse' });
+const { user } = await initPage({ auth: 'optional', active: 'browse' });
 
 $$('[data-icon]').forEach((el) => { el.outerHTML = icon(el.dataset.icon).toString(); });
 render('#toggle-filters', html`${icon('sliders')}Filters`);
@@ -76,8 +76,36 @@ const picker = locationPicker($('#f-origin'), {
   },
 });
 
+// "Near me" is a one-tap shortcut for the distance filter: home location if set, else the last place used, else
+// the device's location (the browser asks first).
+const nearMe = $('#near-me');
+render(nearMe, html`${icon('pin', 'icon-sm')}Near me`);
+nearMe.addEventListener('click', async () => {
+  let origin = user && user.latitude !== null && user.latitude !== undefined
+    ? { lat: user.latitude, lng: user.longitude, name: user.location || 'My home' } : savedOrigin();
+  if (!origin) {
+    nearMe.disabled = true;
+    try {
+      origin = { ...(await currentPosition()), name: 'My location' };
+    } catch (err) {
+      toast(err.message, 'error');
+      return;
+    } finally {
+      nearMe.disabled = false;
+    }
+  }
+  picker.set(origin);
+  saveOrigin(origin);
+  state.origin = origin;
+  if (!state.radius) { state.radius = '10'; $('#f-radius').value = '10'; }
+  if (state.sort === 'newest') { state.sort = 'distance'; $('#f-sort').value = 'distance'; }
+  state.page = 0;
+  load();
+});
+
 function syncControls() {
   const hasOrigin = !!state.origin;
+  nearMe.classList.toggle('hidden', hasOrigin);
   $('#f-radius').disabled = !hasOrigin;
   $('#f-sort option[value=distance]').disabled = !hasOrigin;
 }

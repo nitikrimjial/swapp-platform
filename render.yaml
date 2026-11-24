@@ -25,17 +25,19 @@ services:
       - key: CONTACT_EMAIL
         sync: false                  # public privacy/grievance contact shown on the Privacy Policy
       - key: MAIL_PROVIDER
-        value: log                   # change to smtp once the SMTP_* values below are filled in
+        sync: false                  # "log" (emails only written to the log) or "smtp"; set in the dashboard
       - key: MAIL_FROM
         sync: false                  # a sender address verified at the provider
       - key: SMTP_HOST
         value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: "2525"                # free web services cannot reach ports 25, 465 and 587; Brevo also listens on 2525
       - key: SMTP_USERNAME
         sync: false
       - key: SMTP_PASSWORD
         sync: false
       - key: REQUIRE_EMAIL_VERIFICATION
-        value: "false"               # set to "true" after SMTP works
+        sync: false                  # "true" once email delivery works; set in the dashboard
       # "Sign in with Google": OAuth client (Web application) from Google Cloud Console. Leave unset to hide the button.
       - key: GOOGLE_CLIENT_ID
         sync: false
