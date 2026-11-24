@@ -53,11 +53,13 @@ Password reset and email verification need real email delivery. Any SMTP provide
    MAIL_PROVIDER=smtp
    MAIL_FROM=<the verified sender>
    SMTP_HOST=smtp-relay.brevo.com
+   SMTP_PORT=2525
    SMTP_USERNAME=<SMTP login>
    SMTP_PASSWORD=<SMTP key>
    CONTACT_EMAIL=<public contact for privacy questions>
    ```
-5. Save. Render redeploys. Use **Forgot password** on the live site to check that the email arrives.
+   Render's free web services block outgoing connections to the usual mail ports (25, 465 and 587), so use Brevo's alternative port 2525; `render.yaml` already sets it. The **Login** on Brevo's SMTP page (ending in `@smtp-brevo.com`) is the username, not your own email address, and the password is an **SMTP key**, not an API key. `MAIL_PROVIDER` and `REQUIRE_EMAIL_VERIFICATION` are managed in the dashboard (`sync: false`), so a Blueprint sync never switches email off again.
+5. Save. Render redeploys. Use **Forgot password** on the live site to check that the email arrives. If it does not, search the service's logs for `email`: "Authentication failed" means the login or key is wrong, a timeout means the port is blocked.
 6. Once it does, set `REQUIRE_EMAIL_VERIFICATION=true`, so new members must confirm their address before they can post, make offers or send messages.
 
 ### 4. Sign in with Google (free, optional)

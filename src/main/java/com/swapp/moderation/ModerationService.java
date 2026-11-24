@@ -28,6 +28,9 @@ import com.swapp.item.ItemLocker;
 import com.swapp.item.ItemRepository;
 import com.swapp.item.ItemStatus;
 import com.swapp.mail.AccountEmails;
+import com.swapp.moderation.audit.AuditAction;
+import com.swapp.moderation.audit.AuditService;
+import com.swapp.moderation.dto.AdminDtos.AdminItemRow;
 import com.swapp.moderation.dto.ModerationDtos.ModerationSummary;
 import com.swapp.moderation.dto.ModerationDtos.ReportDto;
 import com.swapp.moderation.dto.ModerationDtos.ResolveReportRequest;
@@ -65,12 +68,13 @@ public class ModerationService {
     private final NotificationService notifications;
     private final AccountEmails emails;
     private final ApplicationEventPublisher events;
+    private final AuditService audit;
 
     public ModerationService(ReportRepository reports, UserRepository users, ItemRepository items, ItemLocker locker,
                              ExchangeRepository exchanges, DonationRequestRepository donationRequests,
                              OfferService offerService, DonationService donationService,
                              NotificationService notifications, AccountEmails emails,
-                             ApplicationEventPublisher events) {
+                             ApplicationEventPublisher events, AuditService audit) {
         this.reports = reports;
         this.users = users;
         this.items = items;
@@ -82,6 +86,7 @@ public class ModerationService {
         this.notifications = notifications;
         this.emails = emails;
         this.events = events;
+        this.audit = audit;
     }
 
     // ---------------------------------------------------------------- queue
@@ -117,6 +122,8 @@ public class ModerationService {
             case DISMISS -> {
                 report = lockOpen(reportId);
                 report.resolve(ReportResolution.DISMISSED, note, moderator);
+                audit.record(moderator, AuditAction.REPORT_DISMISSED, report.getReportedUser(), report.getItem(),
+                        reportId, note);
             }
             case REMOVE_ITEM -> {
                 if (refs.getTargetType() != ReportTargetType.ITEM) {
@@ -126,6 +133,7 @@ public class ModerationService {
                 report = lockOpen(reportId);
                 takeDown(item, note);
                 report.resolve(ReportResolution.ITEM_REMOVED, note, moderator);
+                audit.record(moderator, AuditAction.LISTING_REMOVED, item.getOwner(), item, reportId, note);
                 for (Report other : reports.lockOpenForItem(item.getId(), reportId)) {
                     other.resolve(ReportResolution.ITEM_REMOVED, "Resolved with report #" + reportId, moderator);
                     notifyReporter(other);
@@ -135,9 +143,10 @@ public class ModerationService {
                 if (note == null) {
                     throw ApiException.badRequest("Give a reason for the suspension; the member will see it");
                 }
-                suspendLocked(refs.getReportedUserId(), note); // takes the item locks first
+                User suspended = suspendLocked(refs.getReportedUserId(), note); // takes the item locks first
                 report = lockOpen(reportId);
                 report.resolve(ReportResolution.USER_SUSPENDED, note, moderator);
+                audit.record(moderator, AuditAction.MEMBER_SUSPENDED, suspended, null, reportId, note);
                 for (Report other : reports.lockOpenForUser(refs.getReportedUserId(), reportId)) {
                     other.resolve(ReportResolution.USER_SUSPENDED, "Resolved with report #" + reportId, moderator);
                     notifyReporter(other);
@@ -159,8 +168,33 @@ public class ModerationService {
             throw ApiException.badRequest("You cannot suspend yourself");
         }
         User user = suspendLocked(userId, reason.trim());
+        audit.record(users.getReferenceById(moderatorId), AuditAction.MEMBER_SUSPENDED, user, null, null, reason);
         log.info("User {} suspended by moderator {}", userId, moderatorId);
         return SuspendedUserDto.from(user);
+    }
+
+    /** Takes any listing down without waiting for a report. Open reports about it are resolved with it. */
+    public AdminItemRow removeListing(Long moderatorId, Long itemId, String reason) {
+        if (!StringUtils.hasText(reason)) {
+            throw ApiException.badRequest("Give a reason; the owner will see it");
+        }
+        String note = reason.trim();
+        User moderator = users.findById(moderatorId).orElseThrow(() -> ApiException.notFound("User"));
+        Item item = locker.lockAny(itemId).get(itemId);
+        if (item == null) {
+            throw ApiException.notFound("Item");
+        }
+        if (item.getStatus() == ItemStatus.REMOVED) {
+            throw ApiException.conflict("This listing has already been removed");
+        }
+        takeDown(item, note);
+        for (Report open : reports.lockOpenForItem(itemId, -1L)) {
+            open.resolve(ReportResolution.ITEM_REMOVED, "The listing was removed by a moderator", moderator);
+            notifyReporter(open);
+        }
+        audit.record(moderator, AuditAction.LISTING_REMOVED, item.getOwner(), item, null, note);
+        log.info("Item {} removed by moderator {}", itemId, moderatorId);
+        return AdminItemRow.from(item);
     }
 
     public void reinstate(Long moderatorId, Long userId) {
@@ -171,6 +205,7 @@ public class ModerationService {
         }
         user.setSuspendedAt(null);
         user.setSuspensionReason(null);
+        audit.record(users.getReferenceById(moderatorId), AuditAction.MEMBER_REINSTATED, user, null, null, null);
         events.publishEvent(emails.accountReinstated(user.getEmail(), user.getDisplayName()));
         log.info("User {} reinstated by moderator {}", userId, moderatorId);
     }
