@@ -81,8 +81,8 @@ const picker = locationPicker($('#f-origin'), {
 const nearMe = $('#near-me');
 render(nearMe, html`${icon('pin', 'icon-sm')}Near me`);
 nearMe.addEventListener('click', async () => {
-  let origin = user && user.latitude !== null && user.latitude !== undefined
-    ? { lat: user.latitude, lng: user.longitude, name: user.location || 'My home' } : savedOrigin();
+  const fromHome = Boolean(user) && user.latitude !== null && user.latitude !== undefined;
+  let origin = fromHome ? { lat: user.latitude, lng: user.longitude, name: user.location || 'My home' } : savedOrigin();
   if (!origin) {
     nearMe.disabled = true;
     try {
@@ -94,8 +94,9 @@ nearMe.addEventListener('click', async () => {
       nearMe.disabled = false;
     }
   }
+  // The home location already lives in the profile, so it is never copied into this device's storage.
   picker.set(origin);
-  saveOrigin(origin);
+  if (!fromHome) saveOrigin(origin);
   state.origin = origin;
   if (!state.radius) { state.radius = '10'; $('#f-radius').value = '10'; }
   if (state.sort === 'newest') { state.sort = 'distance'; $('#f-sort').value = 'distance'; }

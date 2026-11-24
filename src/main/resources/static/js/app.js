@@ -174,6 +174,8 @@ function renderFooter() {
 
 async function logout() {
   try { await http.post('/api/auth/logout'); } catch { /* cookie is cleared server-side; navigate anyway */ }
+  // Do not leave the last browsing location behind for the next person on a shared device.
+  try { localStorage.removeItem('swapp.origin'); } catch { /* storage unavailable */ }
   location.href = '/';
 }
 
