@@ -80,28 +80,35 @@ const picker = locationPicker($('#f-origin'), {
 // the device's location (the browser asks first).
 const nearMe = $('#near-me');
 render(nearMe, html`${icon('pin', 'icon-sm')}Near me`);
-nearMe.addEventListener('click', async () => {
-  const fromHome = Boolean(user) && user.latitude !== null && user.latitude !== undefined;
-  let origin = fromHome ? { lat: user.latitude, lng: user.longitude, name: user.location || 'My home' } : savedOrigin();
-  if (!origin) {
-    nearMe.disabled = true;
-    try {
-      origin = { ...(await currentPosition()), name: 'My location' };
-    } catch (err) {
-      toast(err.message, 'error');
-      return;
-    } finally {
-      nearMe.disabled = false;
-    }
-  }
-  // The home location already lives in the profile, so it is never copied into this device's storage.
+function searchNear(origin) {
   picker.set(origin);
-  if (!fromHome) saveOrigin(origin);
   state.origin = origin;
   if (!state.radius) { state.radius = '10'; $('#f-radius').value = '10'; }
   if (state.sort === 'newest') { state.sort = 'distance'; $('#f-sort').value = 'distance'; }
   state.page = 0;
   load();
+}
+nearMe.addEventListener('click', async () => {
+  // The home location already lives in the profile, so it is used as it is and never copied into this device's storage.
+  if (user && user.latitude !== null && user.latitude !== undefined) {
+    searchNear({ lat: user.latitude, lng: user.longitude, name: user.location || 'My home' });
+    return;
+  }
+  const remembered = savedOrigin();
+  if (remembered) {
+    searchNear(remembered);
+    return;
+  }
+  nearMe.disabled = true;
+  try {
+    const here = { ...(await currentPosition()), name: 'My location' };
+    saveOrigin(here);
+    searchNear(here);
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    nearMe.disabled = false;
+  }
 });
 
 function syncControls() {
